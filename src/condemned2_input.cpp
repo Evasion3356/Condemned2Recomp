@@ -212,7 +212,7 @@ namespace rex::input::condemned2input {
       if(windowSettings != nullptr){
         activeWindows.push_back(windowSettings);
       }
-      ImGuiWindow* windowLauncher = ImGui::FindWindowByName("Settings##rex");
+      ImGuiWindow* windowLauncher = ImGui::FindWindowByName("##launcherBg");
       if(windowLauncher != nullptr){
         activeWindows.push_back(windowLauncher);
       }
