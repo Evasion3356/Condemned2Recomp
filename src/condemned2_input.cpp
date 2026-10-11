@@ -205,6 +205,29 @@ namespace rex::input::condemned2input {
     input->SetDeviceAssignment(std::make_unique<SlotAssignment>());
     return input;
   }
+  
+  bool Condemned2InputDriver::IsAnyDialogOpen(){
+    if(activeWindows.empty()){
+      ImGuiWindow* windowSettings = ImGui::FindWindowByName("Settings##rex");
+      if(windowSettings != nullptr){
+        activeWindows.push_back(windowSettings);
+      }
+      ImGuiWindow* windowLauncher = ImGui::FindWindowByName("Settings##rex");
+      if(windowLauncher != nullptr){
+        activeWindows.push_back(windowLauncher);
+      }
+      ImGuiWindow* windowConsole = ImGui::FindWindowByName("Console##rex");
+      if(windowConsole != nullptr){
+        activeWindows.push_back(windowConsole);
+      }
+    }
+    for (ImGuiWindow* window : GetActiveWindows() ) {
+      if ( window != nullptr && window->WasActive ){
+        return true;
+      }
+    }
+    return false;
+  }
 
   X_RESULT Condemned2InputDriver::GetDeviceState(DeviceId id, X_INPUT_STATE* out_state) {
     if (id != kDevice) {
@@ -219,15 +242,7 @@ namespace rex::input::condemned2input {
 
     //Toggles mouse/cursor control when settings is active.
     if(attached_window_ && attached_sdl_window_){
-      if(settingsWindow == nullptr){
-        settingsWindow = ImGui::FindWindowByName("Settings##rex");
-      }
-      if(launcherWindow == nullptr){
-        launcherWindow = ImGui::FindWindowByName("##launcherBg");
-      }
-      bool isSettingsActive = ( settingsWindow != nullptr && settingsWindow->WasActive );
-      bool isMenuActive = ( launcherWindow != nullptr && launcherWindow->WasActive );
-      bool isDialogActive = isMenuActive || isSettingsActive;
+      bool isDialogActive = IsAnyDialogOpen();
       if( isDialogOpen != isDialogActive){
         attached_window_->SetCursorVisibility( isDialogActive ? rex::ui::Window::CursorVisibility::kVisible : rex::ui::Window::CursorVisibility::kHidden);
         SDL_SetWindowRelativeMouseMode(attached_sdl_window_, !isDialogActive);
@@ -239,7 +254,6 @@ namespace rex::input::condemned2input {
     // Native PC Controls
     // UI Controls
     // Navigation
-    //uint32_t buttons = 0;
     if(!IsDown(activeBinds["menu_nav_up"]) && activeBinds["menu_nav_up"].prev ){
       NativeKeyPress(0x82, true);
     }
@@ -394,24 +408,24 @@ namespace rex::input::condemned2input {
     bool hasMeleeWeapon = IsUsingMeleeWeapon();
     bool isMouseLeft = IsDown(activeBinds["condemned2_input_primary_fire"]);
     bool isMouseRight = IsDown(activeBinds["condemned2_input_secondary_fire"]);
-    bool isMouseMiddle = IsDown(activeBinds["condemned2_input_block_alt"]);
-    bool isMouseLeftPressed = Pressed(activeBinds["condemned2_input_primary_fire"]);
-    bool isMouseRightPressed = Pressed(activeBinds["condemned2_input_secondary_fire"]);
-    bool isMouseMiddlePressed = Pressed(activeBinds["condemned2_input_block_alt"]);
-    mouse_clicks = { !hasMeleeWeapon ? isMouseRight : isMouseLeft, !hasMeleeWeapon ? isMouseLeft : isMouseRight, isMouseMiddle};
-    if(!hasMeleeWeapon ? isMouseRightPressed : isMouseLeftPressed){
+    mouse_clicks = { !hasMeleeWeapon ? isMouseRight : isMouseLeft, !hasMeleeWeapon ? isMouseLeft : isMouseRight, IsDown(activeBinds["condemned2_input_block_alt"]) };
+    if(mouse_clicks.isMouseLeft){
       NativeKeyPress(0x47);
       NativeKeyPress(0x79);
       NativeKeyPress(0x1c);
       NativeKeyPress(0x8b);
     }
-    if(!hasMeleeWeapon ? isMouseLeftPressed : isMouseRightPressed){
+    if(mouse_clicks.isMouseRight){
       NativeKeyPress(0x11);
       NativeKeyPress(0x7a);
       NativeKeyPress(0x65);
       NativeKeyPress(0xbc);
     }
-
+    //Combos
+    if(mouse_clicks.isMouseLeft || mouse_clicks.isMouseRight ){
+      NativeKeyPress(0x41);
+    }
+    
     // Mouse look
     float dx = 0.0f, dy = 0.0f;
     if(!isDialogOpen){ // Don't allow mouse movement when dialogs are open!
@@ -430,7 +444,6 @@ namespace rex::input::condemned2input {
     packet_number_++; // Increment input packet number
     if (out_state) {
       out_state->packet_number = packet_number_;
-      //out_state->gamepad.buttons = buttons;
     }
     return X_ERROR_SUCCESS;
   }

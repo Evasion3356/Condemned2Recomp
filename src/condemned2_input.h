@@ -52,6 +52,9 @@ namespace rex::input::condemned2input{
          X_RESULT GetDeviceKeystroke(DeviceId id, uint32_t flags, X_INPUT_KEYSTROKE* out_keystroke) override;
          void OnWindowAvailable(rex::ui::Window* window) override;
 
+         bool IsAnyDialogOpen();
+         std::vector<ImGuiWindow*> GetActiveWindows() { return activeWindows; }
+
          Bind ParseBind(const std::string& s);
          bool IsDown(const Bind &b);
          bool Pressed(Bind& b);
@@ -85,11 +88,10 @@ namespace rex::input::condemned2input{
          bool IsShowObjectives() { return showingObjectives;}
 
       private:
+         uint32_t packet_number_ = 0;
          rex::ui::Window* attached_window_ = nullptr;
          SDL_Window* attached_sdl_window_ = nullptr;
-         ImGuiWindow* settingsWindow = nullptr;
-         ImGuiWindow* launcherWindow = nullptr;
-         uint32_t packet_number_ = 0;
+         std::vector<ImGuiWindow*> activeWindows;
 
          //Raw mouse input
          MouseLookType mouseLookType;
