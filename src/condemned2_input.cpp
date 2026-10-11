@@ -239,6 +239,7 @@ namespace rex::input::condemned2input {
     // Native PC Controls
     // UI Controls
     // Navigation
+    //uint32_t buttons = 0;
     if(!IsDown(activeBinds["menu_nav_up"]) && activeBinds["menu_nav_up"].prev ){
       NativeKeyPress(0x82, true);
     }
@@ -282,10 +283,12 @@ namespace rex::input::condemned2input {
       //In-game menu confirm
       NativeKeyPress(0x57);
       NativeKeyPress(0xa7);
-      NativeKeyPress(0xb7); //Used for dialogs in fight club
+      NativeKeyPress(0xb7); // Used for dialogs in fight club
+      NativeKeyPress(0xba); // Close tutorial dialogs
     }
     if(Pressed(activeBinds["menu_go_back"])){ //buttons |= X_INPUT_GAMEPAD_B;
       NativeKeyPress(0x88);
+      NativeKeyPress(0xba); // Close tutorial dialogs
     }
 
     //Player Input
@@ -427,6 +430,7 @@ namespace rex::input::condemned2input {
     packet_number_++; // Increment input packet number
     if (out_state) {
       out_state->packet_number = packet_number_;
+      //out_state->gamepad.buttons = buttons;
     }
     return X_ERROR_SUCCESS;
   }
