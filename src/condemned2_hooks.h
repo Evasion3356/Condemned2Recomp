@@ -15,6 +15,7 @@
 #include <unordered_map>
 #include <format>
 #include <chrono>
+#include <limits>
 
 namespace Condemned2 {
     class Condemned2Hook  {
@@ -25,15 +26,28 @@ namespace Condemned2 {
             using HookValue = std::variant<int, float, double>;
             struct HookCallback{
                 std::string name;
-                HookValue defaultValue;
                 uint32_t address;
+                HookValue defaultValue;
+                HookValue minValue;
+                HookValue maxValue;
+                bool scaleOnly; // Value only scales the default value!
             };
 
             void InitializeHookCallbacks(rex::Runtime* runtime);
-            void SetMemoryFunc(const HookCallback& _cb, HookValue new_value);
-            void SetMemoryFunc(const HookCallback& _cb, std::string new_value);
+            void RegisterCallbacks(std::vector<HookCallback> _newCallBacks, bool registerChange = true);
             void ExecCallbackFunc(PPCContext& __restrict ctx, std::vector<HookCallback> _Settings);
             
+            void SetMemoryFunc(const HookCallback& _cb, HookValue new_value);
+            void SetMemoryFunc(const HookCallback& _cb, std::string new_value);
+            void SetMemoryFunc(const HookCallback& _cb);
+
+            void AddInitialHook(const HookCallback& _cb){_initialSet.push_back(_cb);};
+            void AddHook(const HookCallback& _cb){_callBacks.push_back(_cb);};
+            static std::string GetSafeString(std::string_view new_value);
+
+            //void AddLookupHook(const HookCallback& _cb){_lookUpSet.push_back(_cb);};
+            //std::vector<HookCallback> GetConfigHooks() { return _lookUpSet; }
+
             static void set_pointer(uint8_t* physicalAddress, uint32_t newValue) {
                 rex::memory::store_and_swap<int>(physicalAddress, static_cast<uint32_t>(newValue));
             };
@@ -58,18 +72,15 @@ namespace Condemned2 {
             static int get_int(uint8_t* physicalAddress) {
                 return rex::memory::load<int>(physicalAddress);
             };
-            static std::string GetSafeString(std::string_view new_value);
-
-            void AddInitialHook(const HookCallback& _cb){_initialSet.push_back(_cb);};
-            void AddHook(const HookCallback& _cb){_callBacks.push_back(_cb);};
         private:
             rex::Runtime* _runtime;
             rex::memory::Memory* _memory;
 
             std::vector<HookCallback> _initialSet = {};
+            //std::vector<HookCallback> _lookUpSet = {};
             std::vector<HookCallback> _callBacks = { 
-                {"condemned2_update_rate", 60.0f, 0x82013B14 },
-                {"condemned2_input_sensitivity_max", 1.0f, 0x82028EC4},
+                {"condemned2_update_rate", 0x82013B14, 60.0f },
+                {"condemned2_input_sensitivity_max", 0x82028EC4, 1.0f},
             };
     };
 }

@@ -14,7 +14,9 @@
 #include <iostream>
 #include <string>
 #include <unordered_map>
-#include <format>
+#include <algorithm>
+#include <cctype>
+#include <limits>
 
 #include <condemned2_hooks.h>
 
@@ -44,11 +46,33 @@ namespace Condemned2 {
 
         //One-time sets done at initialization
         for (HookCallback _cb : _initialSet) {
-            SetMemoryFunc(_cb, _cb.defaultValue);
+            SetMemoryFunc(_cb);
         }
 
         //Register callbacks
-        for (HookCallback _cb : _callBacks) {
+        RegisterCallbacks(_callBacks);
+        //RegisterCallbacks(_lookUpSet, false);
+    }
+
+    //Register callbacks
+    void Condemned2Hook::RegisterCallbacks(std::vector<HookCallback> _newCallBacks, bool registerChange){
+        for (HookCallback &_cb : _newCallBacks) {
+            //Initialize min and max
+            if (std::get_if<double>(&_cb.defaultValue)) {
+                if (std::get_if<double>(&_cb.minValue) == nullptr) _cb.minValue = std::numeric_limits<double>::lowest();
+                if (std::get_if<double>(&_cb.maxValue) == nullptr) _cb.maxValue = std::numeric_limits<double>::max();
+            }else if (std::get_if<float>(&_cb.defaultValue)) {
+                if (std::get_if<float>(&_cb.minValue) == nullptr) _cb.minValue = std::numeric_limits<float>::lowest(); 
+                if (std::get_if<float>(&_cb.maxValue) == nullptr) _cb.maxValue = std::numeric_limits<float>::max();   
+            }else if (std::get_if<int>(&_cb.defaultValue)) {
+                if (std::get_if<int>(&_cb.minValue) == nullptr) _cb.minValue = std::numeric_limits<int>::lowest();  
+                if (std::get_if<int>(&_cb.maxValue) == nullptr) _cb.maxValue = std::numeric_limits<int>::max(); 
+            }
+              
+            if(!registerChange)
+                continue;
+
+            //Initialize callback
             rex::cvar::RegisterChangeCallback(_cb.name, [this, _cb](std::string_view name, std::string_view new_value) {
                 SetMemoryFunc(_cb, GetSafeString(new_value));
             });
@@ -56,59 +80,118 @@ namespace Condemned2 {
             std::string val = rex::cvar::GetFlagByName(_cb.name);
             if(!val.empty())
                 continue;
-            
             bool _bSuccess = rex::cvar::SetFlagByName(_cb.name, val);
             if(_bSuccess){
                 REXLOG_INFO("[condemned2_hooks] {}: {}", _cb.name, val );
             }
         }
     }
-    
-    //Set memory value based on provided value!
-    void Condemned2Hook::SetMemoryFunc(const HookCallback& _cb, HookValue new_value) {
-        if(!_memory ) 
+     
+    //Set memory value based on default value
+    void Condemned2Hook::SetMemoryFunc(const HookCallback& _cb) {
+        if(!_memory) 
             return;
 
-        uint8_t* physicalAddress = _memory->TranslateVirtual<uint8_t*>(_cb.address + 0x010000000);
+        uint8_t* physicalAddress = _memory->TranslateVirtual<uint8_t*>(_cb.address);
         if(!physicalAddress)
             return;
 
-        REXLOG_INFO("[condemned2_hooks]({:#x}) {}", reinterpret_cast<uintptr_t>(physicalAddress), _cb.name );
-        if (auto* d = std::get_if<double>(&_cb.defaultValue)) {
-            if (auto* v = std::get_if<double>(&new_value)) set_double( physicalAddress, std::max(*d, *v));
-        }else if (auto* d = std::get_if<float>(&_cb.defaultValue)) {
-            if (auto* v = std::get_if<float>(&new_value)) set_float( physicalAddress, std::max(*d, *v));
-        }else if (auto* d = std::get_if<int>(&_cb.defaultValue)) {
-            if (auto* v = std::get_if<int>(&new_value)) set_int( physicalAddress, std::max(*d, *v));
+        if(!VirtualAlloc(physicalAddress, 0x10000, MEM_COMMIT, PAGE_READWRITE))
+            return;
+        
+        if (auto* defaultValue = std::get_if<double>(&_cb.defaultValue)) {
+            REXLOG_INFO("[condemned2_hooks]({:#x}) {}: {}", reinterpret_cast<uintptr_t>(physicalAddress), _cb.name, *defaultValue );
+            set_double(physicalAddress, *defaultValue);
+        }else if (auto* defaultValue = std::get_if<float>(&_cb.defaultValue)) {
+            REXLOG_INFO("[condemned2_hooks]({:#x}) {}: {}", reinterpret_cast<uintptr_t>(physicalAddress), _cb.name, *defaultValue );
+            set_float( physicalAddress, *defaultValue);
+        }else if (auto* defaultValue = std::get_if<int>(&_cb.defaultValue)) {
+            REXLOG_INFO("[condemned2_hooks]({:#x}) {}: {}", reinterpret_cast<uintptr_t>(physicalAddress), _cb.name, *defaultValue );
+            set_int( physicalAddress, *defaultValue);
         }
     };
-     
+
     //Set memory value based on provided string!
     void Condemned2Hook::SetMemoryFunc(const HookCallback& _cb, std::string new_value) {
         if(!_memory || new_value.empty()) 
             return;
 
-        uint8_t* physicalAddress = _memory->TranslateVirtual<uint8_t*>(_cb.address + 0x010000000);
+        uint8_t* physicalAddress = _memory->TranslateVirtual<uint8_t*>(_cb.address);
         if(!physicalAddress)
+            return;
+
+        if(!VirtualAlloc(physicalAddress, 0x10000, MEM_COMMIT, PAGE_READWRITE))
             return;
         
         REXLOG_INFO("[condemned2_hooks]({:#x}) {}: {}", reinterpret_cast<uintptr_t>(physicalAddress), _cb.name, new_value );
-        if (auto* d = std::get_if<double>(&_cb.defaultValue)) {
-            set_double( physicalAddress, std::max(*d, std::stod(new_value)));
-        }else if (auto* d = std::get_if<float>(&_cb.defaultValue)) {
-            set_float( physicalAddress, std::max(*d, std::stof(new_value)));
-        }else if (auto* d = std::get_if<int>(&_cb.defaultValue)) {
-            set_int( physicalAddress, std::max(*d, std::stoi(new_value)));
+        if (auto* defaultValue = std::get_if<double>(&_cb.defaultValue)) {
+            auto* min = std::get_if<double>(&_cb.minValue);
+            auto* max = std::get_if<double>(&_cb.maxValue);
+            if (min && max) {
+                double value = std::clamp( std::stod(new_value), *min, *max);
+                if (_cb.scaleOnly) value *= *defaultValue;
+                set_double( physicalAddress, value);
+            }
+        }else if (auto* defaultValue = std::get_if<float>(&_cb.defaultValue)) {
+            auto* min = std::get_if<float>(&_cb.minValue);
+            auto* max = std::get_if<float>(&_cb.maxValue);
+            if (min && max) {
+                float value = std::clamp( std::stof(new_value), *min, *max);
+                if (_cb.scaleOnly) value *= *defaultValue;
+                set_float( physicalAddress, value);
+            }
+        }else if (auto* defaultValue = std::get_if<int>(&_cb.defaultValue)) {
+            auto* min = std::get_if<int>(&_cb.minValue);
+            auto* max = std::get_if<int>(&_cb.maxValue);
+            if (min && max) {
+                int value = std::clamp( std::stoi(new_value), *min, *max);
+                if (_cb.scaleOnly) value *= *defaultValue;
+                set_int( physicalAddress, value);
+            }
+        }
+    };
+
+    //Set memory value based on provided value!
+    void Condemned2Hook::SetMemoryFunc(const HookCallback& _cb, HookValue new_value) {
+        if(!_memory ) 
+            return;
+
+        uint8_t* physicalAddress = _memory->TranslateVirtual<uint8_t*>(_cb.address);
+        if(!physicalAddress)
+            return;
+
+        if(!VirtualAlloc(physicalAddress, 0x10000, MEM_COMMIT, PAGE_READWRITE))
+            return;
+
+        REXLOG_INFO("[condemned2_hooks]({:#x}) {}", reinterpret_cast<uintptr_t>(physicalAddress), _cb.name );
+        if (auto* defaultValue = std::get_if<double>(&_cb.defaultValue)) {
+            if (auto* newValue = std::get_if<double>(&new_value)) {
+                auto* min = std::get_if<double>(&_cb.minValue);
+                auto* max = std::get_if<double>(&_cb.maxValue);
+                if (min && max) set_double( physicalAddress, std::clamp(*newValue, *min, *max));
+            }
+        }else if (auto* defaultValue = std::get_if<float>(&_cb.defaultValue)) {
+            if (auto* newValue = std::get_if<float>(&new_value)) {
+                auto* min = std::get_if<float>(&_cb.minValue);
+                auto* max = std::get_if<float>(&_cb.maxValue);
+                if (min && max) set_float( physicalAddress, std::clamp(*newValue, *min, *max));
+            }
+        }else if (auto* defaultValue = std::get_if<int>(&_cb.defaultValue)) {
+            if (auto* newValue = std::get_if<int>(&new_value)) {
+                auto* min = std::get_if<int>(&_cb.minValue);
+                auto* max = std::get_if<int>(&_cb.maxValue);
+                if (min && max) set_int( physicalAddress, std::clamp(*newValue, *min, *max));
+            }
         }
     };
 
     //Iterate through a list of callbacks
     void Condemned2Hook::ExecCallbackFunc(PPCContext& __restrict ctx, std::vector<HookCallback> _Settings){
         for (HookCallback _cb : _Settings) {
-            if (ctx.r3.u32 == _cb.address) 
+            if (ctx.r3.u32 != _cb.address) 
                 continue;
-
-            std::string val = rex::cvar::GetFlagByName(_cb.name);
+        
+            std::string val = GetSafeString(rex::cvar::GetFlagByName(_cb.name));
             if(!val.empty()){
                 if (std::holds_alternative<double>(_cb.defaultValue)) {
                     ctx.f1.f64 = std::stod(val);
