@@ -32,8 +32,10 @@ namespace rex::input::condemned2input{
 
    struct MouseBind {
       bool isMouseLeft = false;
-      bool isMouseRight  = false;
-      bool isMouseMiddle  = false;
+      bool isMouseRight = false;
+      bool isMouseMiddle = false;
+      bool isMouseLeftPressed = false;
+      bool isMouseRightPressed = false;
    };
 
    class Condemned2InputDriver final : public InputDriver,
@@ -110,7 +112,6 @@ namespace rex::input::condemned2input{
          bool isSprinting = false;
          bool isSelectingTool = false;
          bool showingObjectives = false;
-         bool moveUp = false;
          double move_dx;
          double move_dy;
          MouseBind mouse_clicks;

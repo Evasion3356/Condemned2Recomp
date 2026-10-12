@@ -63,6 +63,7 @@ REX_EXTERN(__imp__Input_KeyUp);
 REX_EXTERN(__imp__Input_GetButton);
 REX_EXTERN(__imp__Input_GetAxis);
 REX_EXTERN(__imp__Input_PlayerInput);
+REX_EXTERN(__imp__Input_OnAttackLanded);
 REX_IMPORT(Input_KeyDown, PressBind, uint32_t(uint32_t, uint32_t));
 REX_IMPORT(Input_KeyHold, HoldBind, uint32_t(uint32_t, uint32_t));
 
@@ -408,24 +409,28 @@ namespace rex::input::condemned2input {
     bool hasMeleeWeapon = IsUsingMeleeWeapon();
     bool isMouseLeft = IsDown(activeBinds["condemned2_input_primary_fire"]);
     bool isMouseRight = IsDown(activeBinds["condemned2_input_secondary_fire"]);
-    mouse_clicks = { !hasMeleeWeapon ? isMouseRight : isMouseLeft, !hasMeleeWeapon ? isMouseLeft : isMouseRight, IsDown(activeBinds["condemned2_input_block_alt"]) };
-    if(mouse_clicks.isMouseLeft){
+    bool isMouseLeftPressed = Pressed(activeBinds["condemned2_input_primary_fire"]);
+    bool isMouseRightPressed = Pressed(activeBinds["condemned2_input_secondary_fire"]);
+    mouse_clicks = { 
+      !hasMeleeWeapon ? isMouseRight : isMouseLeft, 
+      !hasMeleeWeapon ? isMouseLeft : isMouseRight, 
+      IsDown(activeBinds["condemned2_input_block_alt"]), 
+      !hasMeleeWeapon ? isMouseRightPressed : isMouseLeftPressed, 
+      !hasMeleeWeapon ? isMouseLeftPressed : isMouseRightPressed 
+    };
+    if(mouse_clicks.isMouseLeftPressed){
       NativeKeyPress(0x47);
       NativeKeyPress(0x79);
       NativeKeyPress(0x1c);
       NativeKeyPress(0x8b);
     }
-    if(mouse_clicks.isMouseRight){
+    if(mouse_clicks.isMouseRightPressed){
       NativeKeyPress(0x11);
       NativeKeyPress(0x7a);
       NativeKeyPress(0x65);
       NativeKeyPress(0xbc);
     }
-    //Combos
-    if(mouse_clicks.isMouseLeft || mouse_clicks.isMouseRight ){
-      NativeKeyPress(0x41);
-    }
-    
+
     // Mouse look
     float dx = 0.0f, dy = 0.0f;
     if(!isDialogOpen){ // Don't allow mouse movement when dialogs are open!
@@ -603,6 +608,13 @@ namespace rex::input::condemned2input {
     }else if(btn == 0x1c){ 
       return mouseClick.isMouseLeft;
     }
+
+    //Combos
+    if (btn == 0x7a ) {
+      return mouseClick.isMouseRightPressed;
+    }else if(btn == 0x79){ 
+      return mouseClick.isMouseLeftPressed;
+    }
     return 0;
   }
 
@@ -631,7 +643,7 @@ namespace rex::input::condemned2input {
     __imp__Input_KeyUp(ctx, base);
   }
   REX_HOOK_RAW(Input_GetButton){
-    uint32_t temp = ctx.r3.u32;
+    //uint32_t temp = ctx.r3.u32;
     uint32_t tempB = ctx.r4.u32;
     __imp__Input_GetButton(ctx, base);
     double newValue = GetButtonOverrideValue(tempB);
@@ -643,6 +655,14 @@ namespace rex::input::condemned2input {
   REX_HOOK_RAW(Input_PlayerInput){
     REXLOG_INFO("[condemned2_input][Input_PlayerInput] {:#x} {:#x}", ctx.r3.u64, ctx.r4.u32);
     __imp__Input_PlayerInput(ctx, base);
+  }
+  
+  // Handles on attack landed events!
+  REX_HOOK_RAW(Input_OnAttackLanded){
+    //uint32_t temp = ctx.r3.u32;
+    //uint32_t tempB = ctx.r5.u32;
+    __imp__Input_OnAttackLanded(ctx, base);
+    //REXLOG_INFO("[condemned2_input][Input_OnAttackLanded] {:#x} {:#x} {:#x} {:#x} {:#x}", temp, tempB, ctx.r5.u32, ctx.r6.u32, ctx.r3.u64);
   }
   
   // Radio & TV Antenna Adjustment Function
