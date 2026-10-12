@@ -208,22 +208,20 @@ namespace rex::input::condemned2input {
   }
   
   bool Condemned2InputDriver::IsAnyDialogOpen(){
-    if(activeWindows.empty()){
-      ImGuiWindow* windowSettings = ImGui::FindWindowByName("Settings##rex");
-      if(windowSettings != nullptr){
-        activeWindows.push_back(windowSettings);
-      }
-      ImGuiWindow* windowLauncher = ImGui::FindWindowByName("##launcherBg");
-      if(windowLauncher != nullptr){
-        activeWindows.push_back(windowLauncher);
-      }
-      ImGuiWindow* windowConsole = ImGui::FindWindowByName("Console##rex");
-      if(windowConsole != nullptr){
-        activeWindows.push_back(windowConsole);
+    if(activeWindows.size() < windowNames.size()){
+      for (const std::string& windowName : windowNames){
+        auto it = activeWindows.find(windowName);
+        if (it != activeWindows.end() && it->second != nullptr)
+          continue;
+
+        ImGuiWindow* newWindow = ImGui::FindWindowByName(windowName.c_str());
+        if(newWindow != nullptr){
+          activeWindows[windowName] = newWindow;
+        }
       }
     }
-    for (ImGuiWindow* window : GetActiveWindows() ) {
-      if ( window != nullptr && window->WasActive ){
+    for (const auto& [windowName, activeWindow] : activeWindows) {
+      if ( activeWindow != nullptr && activeWindow->WasActive ){
         return true;
       }
     }
@@ -243,12 +241,12 @@ namespace rex::input::condemned2input {
 
     //Toggles mouse/cursor control when settings is active.
     if(attached_window_ && attached_sdl_window_){
-      bool isDialogActive = IsAnyDialogOpen();
-      if( isDialogOpen != isDialogActive){
-        attached_window_->SetCursorVisibility( isDialogActive ? rex::ui::Window::CursorVisibility::kVisible : rex::ui::Window::CursorVisibility::kHidden);
-        SDL_SetWindowRelativeMouseMode(attached_sdl_window_, !isDialogActive);
-        SDL_CaptureMouse(!isDialogActive);
-        isDialogOpen = isDialogActive;
+      bool isDialogCurrentlyOpen = IsAnyDialogOpen();
+      if( isDialogOpen != isDialogCurrentlyOpen){
+        isDialogOpen = isDialogCurrentlyOpen;
+        attached_window_->SetCursorVisibility( isDialogOpen ? rex::ui::Window::CursorVisibility::kVisible : rex::ui::Window::CursorVisibility::kHidden);
+        SDL_SetWindowRelativeMouseMode(attached_sdl_window_, !isDialogOpen);
+        SDL_CaptureMouse(!isDialogOpen);
       }
     }
 

@@ -55,7 +55,7 @@ namespace rex::input::condemned2input{
          void OnWindowAvailable(rex::ui::Window* window) override;
 
          bool IsAnyDialogOpen();
-         std::vector<ImGuiWindow*> GetActiveWindows() { return activeWindows; }
+         std::unordered_map<std::string, ImGuiWindow*> GetActiveWindows() { return activeWindows; }
 
          Bind ParseBind(const std::string& s);
          bool IsDown(const Bind &b);
@@ -91,9 +91,16 @@ namespace rex::input::condemned2input{
 
       private:
          uint32_t packet_number_ = 0;
+
+         //Window management
          rex::ui::Window* attached_window_ = nullptr;
          SDL_Window* attached_sdl_window_ = nullptr;
-         std::vector<ImGuiWindow*> activeWindows;
+         std::unordered_map<std::string, ImGuiWindow*> activeWindows;
+         const std::vector<std::string> windowNames = {
+            "Settings##rex",
+            "Console##rex",
+            "##launcherBg",
+         };
 
          //Raw mouse input
          MouseLookType mouseLookType;
