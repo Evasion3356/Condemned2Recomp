@@ -90,7 +90,8 @@ namespace Condemned2 {
 
     //The game only has the assets of the weapons the current mission uses. Each mission's first world bundle
     //(M??_0000) lists its weapons' models, animations and sounds, so loading one of them makes the weapon usable.
-    //Picked to share as few bundles as possible (Missions 3 and 9 are small), since loaded bundles stay in memory.
+    //Each weapon uses the smallest mission bundle that has it (they are 90-150 MB, far more than the weapon itself),
+    //preferring bundles other weapons already need, since loaded bundles stay in memory.
     struct WeaponBundle {
         const char* weapon; //Weapon record name
         const char* kind;   //Models\Arsenal\<kind>\<model>
@@ -98,35 +99,35 @@ namespace Condemned2 {
         const char* bundle;
     };
     static const WeaponBundle kWeaponBundles[] = {
-        { "Handgun_9mm", "Weap_Ranged", "Handgun_9mm", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
-        { "Handgun_22", "Weap_Ranged", "Pistol_22", R"(Worlds\SP\Mission_09\M09_0000.bndl)" },
+        { "Handgun_9mm", "Weap_Ranged", "Handgun_9mm", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
+        { "Handgun_22", "Weap_Ranged", "Pistol_22", R"(Worlds\SP\Mission_08\M08_0000.bndl)" },
         { "Handgun_38", "Weap_Ranged", "Revolver_38", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
-        { "Handgun_44", "Weap_Ranged", "Handgun_44", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
-        { "Rifle_Assault", "Weap_Ranged", "Assault_Rifle", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
+        { "Handgun_44", "Weap_Ranged", "Handgun_44", R"(Worlds\SP\Mission_07\M07_0000.bndl)" },
+        { "Rifle_Assault", "Weap_Ranged", "Assault_Rifle", R"(Worlds\SP\Mission_08\M08_0000.bndl)" },
         { "Rifle_Lever", "Weap_Ranged", "Rifle_Lever", R"(Worlds\SP\Mission_08\M08_0000.bndl)" },
         { "Subgun_Street", "Weap_Ranged", "Subgun", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
-        { "Shotgun_Double", "Weap_Ranged", "double_barrel", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
-        { "Shotgun_Pump", "Weap_Ranged", "Shotgun_Pump", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
+        { "Shotgun_Double", "Weap_Ranged", "double_barrel", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
+        { "Shotgun_Pump", "Weap_Ranged", "Shotgun_Pump", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
         { "Shotgun_Riot", "Weap_Ranged", "Combat_Shotgun", R"(Worlds\SP\Mission_05\M05_0000.bndl)" },
         { "Special_Crossbow", "Weap_Ranged", "Crossbow", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
-        { "Pipe", "Weap_Melee", "Pipe", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
-        { "Pipe_Lever", "Weap_Melee", "Pipe_Lever", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
-        { "Pipe_Steam", "Weap_Melee", "Pipe_Steam", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
+        { "Pipe", "Weap_Melee", "Pipe", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
+        { "Pipe_Lever", "Weap_Melee", "Pipe_Lever", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
+        { "Pipe_Steam", "Weap_Melee", "Pipe_Steam", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
         { "Crowbar", "Weap_Melee", "Crowbar", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
         { "War_Hammer", "Weap_Melee", "War_Hammer", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
         { "Rip_Hammer", "Weap_Melee", "Rip_Hammer", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
         { "FireAxe", "Weap_Melee", "FireAxe", R"(Worlds\SP\Mission_09\M09_0000.bndl)" },
         { "BattleAxe", "Weap_Melee", "BattleAxe", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
-        { "Broadsword", "Weap_Melee", "Broadsword", R"(Worlds\SP\Mission_09\M09_0000.bndl)" },
+        { "Broadsword", "Weap_Melee", "Broadsword", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
         { "Short_Sword", "Weap_Melee", "Short_Sword", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
         { "Cleaver", "Weap_Melee", "Meat_Cleaver", R"(Worlds\SP\Mission_08\M08_0000.bndl)" },
         { "Shovel", "Weap_Melee", "Shovel", R"(Worlds\SP\Mission_09\M09_0000.bndl)" },
         { "Tire_Iron", "Weap_Melee", "Tire_Iron", R"(Worlds\SP\Mission_10\M10_0000.bndl)" },
-        { "Baseball_Bat", "Weap_Melee", "Baseball_Bat", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
+        { "Baseball_Bat", "Weap_Melee", "Baseball_Bat", R"(Worlds\SP\Mission_09\M09_0000.bndl)" },
         { "Golf_Club", "Weap_Melee", "Golf_Club", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
         { "Large_Wrench", "Weap_Melee", "Large_Wrench", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
-        { "Brick", "Weap_Melee", "Brick", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
-        { "Rebar_Straight", "Weap_Melee", "Rebar_Straight", R"(Worlds\SP\Mission_03\M03_0000.bndl)" },
+        { "Brick", "Weap_Melee", "Brick", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
+        { "Rebar_Straight", "Weap_Melee", "Rebar_Straight", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
         { "Rebar_Bent", "Weap_Melee", "Rebar_Bent", R"(Worlds\SP\Mission_08\M08_0000.bndl)" },
         { "Baton", "Weap_Melee", "Baton", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
         { "Saw_Lollypop", "Weap_Melee", "Saw_Lollypop", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
