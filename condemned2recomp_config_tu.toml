@@ -87,3 +87,9 @@
 
 # Misc
 0x82561760 = {name="Math_ApplyLinearCurve"} # This has various applications, such as input sensitivity and various sfx settings.
+
+# Cheats
+0x8249ECF8 = {name="CanHolsterWeapon"} # CanHolsterWeapon(player, weapon, input): true if the weapon is stowed in the holster instead of dropped
+0x821B1120 = {name="ParseBundle"} # ParseBundle(resource, stream): reads a .bndl and registers every resource in it
+0x821AE858 = {name="FindResourceHandler"} # FindResourceHandler(manager, resourceName, &handler): false makes ParseBundle skip that resource
+0x823079C8 = {name="GetControlInput"} # GetControlInput(input, "ControlName"): value of a named control, 0 while the player has not unlocked it yet (e.g. "Holster")

@@ -23,6 +23,7 @@
 
 #include <condemned2_graphics.h>
 #include <condemned2_hooks.h>
+#include <condemned2_cheats.h>
 
 //Rex Cvars
 /*REXCVAR_DEFINE_STRING(condemned2_native_resolution, "1280x720","Condemned 2/Graphics", "Native Resolution").allowed({
@@ -145,7 +146,10 @@ namespace rex::graphics::condemned2graphics {
             g_condemned2_graphics->GetHook()->SetMemoryFunc({"condemned2_screen_effects", 0x8293D4EC, g_condemned2_graphics->GetScreenEffect()} );
         }
         ctx.f1.f64 = newVal;
+        uint32_t outPtr = ctx.r3.u32;
         __imp__SetConfigCvar(ctx, base);
+        if (Condemned2::g_condemned2_cheats)
+            Condemned2::g_condemned2_cheats->OnConfigCvarRegistered(ptr, outPtr);
     }
 
     //Screen effects
