@@ -609,11 +609,13 @@ namespace rex::input::condemned2input {
       return mouseClick.isMouseLeft;
     }
 
-    //Combos
-    if (btn == 0x7a ) {
-      return mouseClick.isMouseRightPressed;
-    }else if(btn == 0x79){ 
-      return mouseClick.isMouseLeftPressed;
+    //Melee Combos
+    if( g_condemned2_input_driver->IsUsingMeleeWeapon()){
+      if (btn == 0x7a ) {
+        return mouseClick.isMouseRightPressed;
+      }else if(btn == 0x79){ 
+        return mouseClick.isMouseLeftPressed;
+      }
     }
     return 0;
   }
