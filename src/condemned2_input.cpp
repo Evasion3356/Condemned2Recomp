@@ -338,7 +338,7 @@ namespace rex::input::condemned2input {
       NativeKeyPress(Action::DialogConfirmB); // Used for dialogs in fight club
       NativeKeyPress(Action::DialogClose); // Close tutorial dialogs
       NativeKeyPress(Action::CameraShutter); // Forensic camera photo
-      NativeKeyPress(Action::MenuA); // Enter in in-world terminals
+      NativeKeyPress(Action::WorldUiEnter); // Enter in in-world terminals
     }
     if(Pressed(activeBinds["menu_go_back"])){ //buttons |= X_INPUT_GAMEPAD_B;
       NativeKeyPress(Action::MenuBack);
@@ -396,25 +396,25 @@ namespace rex::input::condemned2input {
       NativeKeyPress(Action::InventoryPanel);
       NativeKeyPress(Action::AltLeftStickY);
       NativeKeyPress(Action::ToolSlotUV);
-      NativeKeyPress(Action::ToolSlotLeft);
+      NativeKeyPress(Action::WorldUiLeft);
     }
     if(Pressed(activeBinds["condemned2_input_tool_camera"])){
       NativeKeyPress(Action::InventoryPanel);
       NativeKeyPress(Action::ToolSlotCamera);
-      NativeKeyPress(Action::ToolSlotUp);
-      NativeKeyPress(Action::ToolSlotLeft);
+      NativeKeyPress(Action::WorldUiUp);
+      NativeKeyPress(Action::WorldUiLeft);
     }
     if(Pressed(activeBinds["condemned2_input_tool_spectrometer"])){
       NativeKeyPress(Action::ForensicTools);
       NativeKeyPress(Action::InventoryPanel);
       NativeKeyPress(Action::ToolSlotSpectrometer);
-      NativeKeyPress(Action::ToolSlotRight);
+      NativeKeyPress(Action::WorldUiRight);
     }
     if(Pressed(activeBinds["condemned2_input_tool_gps"])){
       NativeKeyPress(Action::ForensicTools);
       NativeKeyPress(Action::InventoryPanel);
       NativeKeyPress(Action::ToolSlotGps);
-      NativeKeyPress(Action::ToolSlotDown);
+      NativeKeyPress(Action::WorldUiDown);
     }
 
      //Left Stick/Movement
