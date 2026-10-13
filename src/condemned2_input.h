@@ -111,6 +111,8 @@ namespace rex::input::condemned2input{
 
          //Logging
          bool injecting_ = false;
+         bool useHeld_ = false;
+         bool aimHeld_ = false;
          bool logLeft_ = false, logRight_ = false, logMelee_ = false, logTool_ = false;
 
          //Mouse wheel (UI thread accumulates, game thread consumes)

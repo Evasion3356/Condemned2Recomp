@@ -340,9 +340,19 @@ namespace rex::input::condemned2input {
       NativeKeyPress(Action::CameraShutter); // Forensic camera photo
       NativeKeyPress(Action::WorldUiEnter); // Enter in in-world terminals
     }
+    // Use is a hold: the forensic scanner scans while it is down and special moves finish when it
+    // is released, so the game needs the OFF event as well as the ON (a gamepad sends both).
+    {
+      const bool useDown = !isDialogOpen && (IsDown(activeBinds["menu_enter"]) || IsDown(activeBinds["condemned2_input_use"]));
+      if(!useDown && useHeld_){
+        NativeKeyPress(Action::Use, true);
+      }
+      useHeld_ = useDown;
+    }
     if(Pressed(activeBinds["menu_go_back"])){ //buttons |= X_INPUT_GAMEPAD_B;
       NativeKeyPress(Action::MenuBack);
       NativeKeyPress(Action::DialogClose); // Close tutorial dialogs
+      NativeKeyPress(Action::WorldUiEscape); // Escape in in-world terminals
     }
 
     //Player Input
@@ -471,6 +481,11 @@ namespace rex::input::condemned2input {
       NativeKeyPress(Action::Block);
       NativeKeyPress(Action::MenuRtAlt);
     }
+    // Aim/focus (71) is a hold: PlayerAiming clears the aiming flag on the OFF event.
+    if(!mouse_clicks.isMouseLeft && aimHeld_){
+      NativeKeyPress(Action::FirearmTrigger, true);
+    }
+    aimHeld_ = mouse_clicks.isMouseLeft;
     if(mouse_clicks.isMouseRightPressed){
       NativeKeyPress(Action::Attack);
       NativeKeyPress(Action::ComboLeft);
