@@ -7,10 +7,13 @@
 #include <rex/ui/window.h>
 #include <rex/ui/window_listener.h>
 
+#include <atomic>
 #include <cstdint>
 #include <mutex>
 #include <queue>
 #include <string>
+
+#include <condemned2_actions.h>
 
 #include <imgui.h>
 #include <imgui_internal.h>
@@ -53,6 +56,8 @@ namespace rex::input::condemned2input{
          X_RESULT SetDeviceVibration(DeviceId id, X_INPUT_VIBRATION* vibration) override;
          X_RESULT GetDeviceKeystroke(DeviceId id, uint32_t flags, X_INPUT_KEYSTROKE* out_keystroke) override;
          void OnWindowAvailable(rex::ui::Window* window) override;
+         void OnMouseWheel(rex::ui::MouseEvent& e) override;
+         void OnClosing(rex::ui::UIEvent& e) override;
 
          bool IsAnyDialogOpen();
          std::unordered_map<std::string, ImGuiWindow*> GetActiveWindows() { return activeWindows; }
@@ -61,6 +66,7 @@ namespace rex::input::condemned2input{
          bool IsDown(const Bind &b);
          bool Pressed(Bind& b);
          void NativeKeyPress(int32_t keycode, bool release = false);
+         void NativeKeyPress(condemned2::Action action, bool release = false) { NativeKeyPress(static_cast<int32_t>(action), release); }
          std::unordered_map<std::string, Bind> GetActiveBinds() { return activeBinds; }
 
          void SetMouseLookType( MouseLookType mouseMode ) { mouseLookType = mouseMode; }
@@ -101,6 +107,11 @@ namespace rex::input::condemned2input{
             "Console##rex",
             "##launcherBg",
          };
+
+         //Mouse wheel (UI thread accumulates, game thread consumes)
+         std::atomic<int> wheelTicks_{0};
+         condemned2::Action wheelHeld_ = static_cast<condemned2::Action>(0);
+         bool wheelHeldActive_ = false;
 
          //Raw mouse input
          MouseLookType mouseLookType;
