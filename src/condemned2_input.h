@@ -66,6 +66,7 @@ namespace rex::input::condemned2input{
          bool IsDown(const Bind &b);
          bool Pressed(Bind& b);
          void NativeKeyPress(int32_t keycode, bool release = false);
+         bool IsActionEnabled(condemned2::Action action);
          void NativeKeyPress(condemned2::Action action, bool release = false) { NativeKeyPress(static_cast<int32_t>(action), release); }
          std::unordered_map<std::string, Bind> GetActiveBinds() { return activeBinds; }
 

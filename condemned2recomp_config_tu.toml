@@ -73,6 +73,7 @@
 0x8234BEC0 = {name="Input_KeyUp"}
 0x8234BF28 = {name="Input_KeyHold"}
 0x82315438 = {name="Input_PlayerInput"}
+0x8234C388 = {name="Input_IsCommandEnabled"} # (input, actionId): true if the action is enabled by the active command sets (EnableCommands / DisableCommands)
 0x82874E28 = {name="Input_OnAttackLanded"}
 0x82425158 = {name="AimingSensitivity"} # Aiming sensitivity setting
 0x8230A428 = {name="ProcessLookInput"}

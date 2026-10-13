@@ -70,6 +70,7 @@ REX_EXTERN(__imp__Input_PlayerInput);
 REX_EXTERN(__imp__Input_OnAttackLanded);
 REX_IMPORT(Input_KeyDown, PressBind, uint32_t(uint32_t, uint32_t));
 REX_IMPORT(Input_KeyHold, HoldBind, uint32_t(uint32_t, uint32_t));
+REX_IMPORT(Input_IsCommandEnabled, IsCommandEnabled, uint32_t(uint32_t, uint32_t)); // Is this action enabled by the active command sets?
 
 //Native functions used for control schemes
 REX_EXTERN(__imp__TvAntennaAdjust); // Function that processes Radio/TV antenna adjusting
@@ -489,7 +490,11 @@ namespace rex::input::condemned2input {
     if(mouse_clicks.isMouseRightPressed){
       NativeKeyPress(Action::Attack);
       NativeKeyPress(Action::ComboLeft);
-      NativeKeyPress(Action::CancelTask);
+      // Only when the active command set enables it; otherwise this aborts the forensic task on
+      // every attack click (the camera click above included).
+      if (IsActionEnabled(Action::CancelTask)) {
+        NativeKeyPress(Action::CancelTask);
+      }
       NativeKeyPress(Action::NoteInputTime);
       NativeKeyPress(Action::CameraShutter); // The forensic camera takes its photo on this action
     }
@@ -556,8 +561,15 @@ namespace rex::input::condemned2input {
   }
 
   // Native key presses in Condemned 2!
+  // Asks the game whether an action is enabled by the active command sets. A gamepad only fires
+  // the actions its current command set enables, but the driver sends aliases directly, so it has
+  // to ask (otherwise e.g. CancelTask aborts a forensic task on every click).
+  bool Condemned2InputDriver::IsActionEnabled(Action action) {
+    return (IsCommandEnabled(kInputManager, static_cast<uint32_t>(action)) & 0xff) != 0;
+  }
+
   void Condemned2InputDriver::NativeKeyPress(int32_t keycode, bool release ){
-    C2_INPUT_LOG("[c2in] inject {} {} ({:#x})", release ? "RELEASE" : "PRESS  ", ActionName(static_cast<uint32_t>(keycode)), keycode);
+    C2_INPUT_LOG("[c2in] inject {} {} ({:#x}) enabled={}", release ? "RELEASE" : "PRESS  ", ActionName(static_cast<uint32_t>(keycode)), keycode, release ? -1 : static_cast<int>(IsActionEnabled(static_cast<Action>(keycode))));
     injecting_ = true;
     PressBind(kInputManager, keycode);
     if(!release){
