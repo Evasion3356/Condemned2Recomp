@@ -30,6 +30,9 @@ enum class Action : uint32_t {
   MouseLookY = 0x0B,    // [XEX] GetAxis only, read by the mouse-look code
   MouseLookX = 0x0C,    // [XEX] GetAxis only, read by the mouse-look code (HUD <%aim%>)
 
+  MovementToggle0E = 0x0E,  // [XEX] PlayerMovement::OnEventPlayerCommandOn toggles a movement flag (only if the player option is enabled)
+  MovementToggle0F = 0x0F,  // [XEX] PlayerMovement::OnEventPlayerCommandOn (sets/clears a movement flag)
+  MovementToggle12 = 0x12,  // [XEX] PlayerMovement::OnEventPlayerCommandOn toggles a movement flag
   Start = 0x0D,         // [pad] Start, pause
   Sprint = 0x10,        // [XEX] LB, HUD <%sprint%>
   Attack = 0x11,        // [XEX] LT, CS_Attack, HUD <%fire%>
@@ -37,7 +40,16 @@ enum class Action : uint32_t {
   MenuRight = 0x15,     // [pad] D-pad right (dialogs)
   LookAxisY = 0x16,     // [XEX] Right stick Y
   LookAxisX = 0x17,     // [XEX] Right stick X
+  MovementSet19 = 0x19, // [XEX] PlayerMovement::OnEventPlayerCommandOn clears the same flag 0x1A sets
+  MovementSet1A = 0x1A, // [XEX] PlayerMovement::OnEventPlayerCommandOn
   Block = 0x1C,         // [XEX] RT, CS_Block, HUD <%block%>
+
+  // PlayerWeaponMgr::OnEventPlayerCommandOn: weapon slot 0..9 (keys 1..0 in the original design),
+  // then three more quick slots, then last-weapon, grenade cycle and previous/next weapon.
+  WeaponSlot0 = 0x1E, WeaponSlot1 = 0x1F, WeaponSlot2 = 0x20, WeaponSlot3 = 0x21, WeaponSlot4 = 0x22,
+  WeaponSlot5 = 0x23, WeaponSlot6 = 0x24, WeaponSlot7 = 0x25, WeaponSlot8 = 0x26, WeaponSlot9 = 0x27, // [XEX]
+  QuickItem0 = 0x28, QuickItem1 = 0x29, QuickItem2 = 0x2A, // [XEX] a, a+1, a+2 looked up in the item registry
+  LastWeapon = 0x32,    // [XEX] swaps to the previously held weapon (the "CanLastWeapon" feature)
 
   ToggleMelee = 0x3C,   // [XEX] HUD <%togglemelee%>
   AmmoCheck = 0x3D,     // [XEX] Y, HUD <%ammocheck%>
@@ -46,7 +58,10 @@ enum class Action : uint32_t {
   Grab = 0x40,          // [XEX] CS_Grab / CS_DoubleGrab
   BlockHold = 0x42,     // [pad] Left stick click, polled for block-hold
 
-  FirearmTrigger = 0x47,  // [pad] RT; PlayerAiming reads this axis as "is > 0"
+  CycleGrenade = 0x49,  // [XEX] PlayerInput case 73: next throwable (uses "IsGrenade" / "AmmoName")
+  WeaponPrev = 0x4C,    // [XEX] PlayerInput case 76 / PlayerWeaponMgr: previous weapon slot
+  WeaponNext = 0x4D,    // [XEX] PlayerInput case 77 / PlayerWeaponMgr: next weapon slot
+  FirearmTrigger = 0x47,  // [XEX] RT; PlayerAiming CommandOn/Off(71) and the axis read set/clear the aiming flag. A hold: send OFF when released
   ObjectivesA = 0x4E,   // [pad] Back
   ObjectivesB = 0x4F,   // [pad] Back
 
@@ -54,7 +69,7 @@ enum class Action : uint32_t {
   Kick = 0x5A,          // [XEX] Right stick click, HUD <%kick%>
   MenuTabY = 0x5B,      // [pad] Y
   MenuTabX = 0x5C,      // [pad] X
-  MenuUse = 0x5D,       // [pad] A
+  MenuUse = 0x5D,       // [XEX] A; CDecisionObjectFX::OnEventPlayerCommandOn confirms a dialogue/decision object
 
   CancelTask = 0x65,    // [XEX] LT; aborts the current forensic task if CanAbort
   Holster = 0x66,       // [XEX] D-pad down, "Holster" control
@@ -82,16 +97,17 @@ enum class Action : uint32_t {
   MenuConfirm = 0x87,   // [XEX] A
   MenuBack = 0x88,      // [XEX] B
   MenuStickX = 0x89,    // [XEX] Left stick X (CMenuUI / CPlayerUI GetAxis)
-  MenuRtAlt = 0x8B,     // [pad] RT
+  MenuRtAlt = 0x8B,     // [XEX] RT; PlayerMapGPS::OnCommandOn toggles a GPS state
   MenuBAlt = 0x8C,      // [pad] B
-  MenuCategoryLeft = 0x8D,   // [pad] LB
-  MenuCategoryRight = 0x8E,  // [pad] RB
+  MenuCategoryLeft = 0x8D,   // [XEX] LB; PlayerMapGPS previous page
+  MenuCategoryRight = 0x8E,  // [XEX] RB; PlayerMapGPS next page
   AltRightStickY = 0x8F,  // [pad] Right stick Y (PlayerMapGPS reads it)
   AltLeftStickY = 0x90,   // [pad] Left stick Y (PlayerMapGPS reads it). The driver also sends it for the UV quick-swap (empirical).
   AltLeftStickX = 0x91,   // [pad] Left stick X (PlayerMapGPS reads it)
 
-  // Forensic tool slots. Values come from the driver's quick-swap (found by experiment); only
-  // the order UV/spectrometer/camera/GPS is known, not the game's own names.
+  // Forensic tool slots. [XEX] PlayerUILogic::OnCommandOn maps 0x98 -> tool 1, 0x96 -> tool 2,
+  // 0x97 -> tool 3, 0x99 -> tool 4 (only while the tool wheel is open). The UV/spectrometer/camera/GPS
+  // names follow the driver's quick-swap.
   ToolSlotUV = 0x96,
   ToolSlotSpectrometer = 0x97,
   ToolSlotCamera = 0x98,
@@ -104,13 +120,13 @@ enum class Action : uint32_t {
   MenuA = 0xA3,         // [pad] A
   MenuLt = 0xA4,        // [pad] LT
   TaskAction = 0xA6,    // [XEX] Y, PlayerInput case 166
-  InGameConfirm = 0xA7, // [pad] A
-  MenuLsClick = 0xA8,   // [pad] Left stick click
+  InGameConfirm = 0xA7, // [XEX] A; PlayerMapGPS::OnCommandOn confirm
+  MenuLsClick = 0xA8,   // [XEX] Left stick click; PlayerMapGPS::OnCommandOn
   MenuY = 0xAA,         // [pad] Y
   MenuX = 0xAB,         // [pad] X
   DialogConfirmA = 0xB5,  // [pad] A / Start
-  DialogConfirmB = 0xB7,  // [pad] A
-  DialogBack = 0xB8,    // [pad] B
+  DialogConfirmB = 0xB7,  // [XEX] A; CLeaderboardChallengeFX (fight club) confirm
+  DialogBack = 0xB8,    // [XEX] B; CLeaderboardChallengeFX cancel (while in its 3rd state)
   CameraShutter = 0xB9, // [XEX] A; WeaponDisplayDigitalCamera::OnEventPlayerCommandOn takes the photo on this ID
   DialogClose = 0xBA,   // [pad] B, closes tutorial dialogs
   NoteInputTime = 0xBC, // [guess] PlayerInput case 188 only stores a timestamp
@@ -129,6 +145,9 @@ inline const char* ActionName(uint32_t id) {
     case Action::StrafeAxisX: return "StrafeAxisX";
     case Action::MouseLookY: return "MouseLookY";
     case Action::MouseLookX: return "MouseLookX";
+    case Action::MovementToggle0E: return "MovementToggle0E";
+    case Action::MovementToggle0F: return "MovementToggle0F";
+    case Action::MovementToggle12: return "MovementToggle12";
     case Action::Start: return "Start";
     case Action::Sprint: return "Sprint";
     case Action::Attack: return "Attack";
@@ -136,13 +155,32 @@ inline const char* ActionName(uint32_t id) {
     case Action::MenuRight: return "MenuRight";
     case Action::LookAxisY: return "LookAxisY";
     case Action::LookAxisX: return "LookAxisX";
+    case Action::MovementSet19: return "MovementSet19";
+    case Action::MovementSet1A: return "MovementSet1A";
     case Action::Block: return "Block";
+    case Action::WeaponSlot0: return "WeaponSlot0";
+    case Action::WeaponSlot1: return "WeaponSlot1";
+    case Action::WeaponSlot2: return "WeaponSlot2";
+    case Action::WeaponSlot3: return "WeaponSlot3";
+    case Action::WeaponSlot4: return "WeaponSlot4";
+    case Action::WeaponSlot5: return "WeaponSlot5";
+    case Action::WeaponSlot6: return "WeaponSlot6";
+    case Action::WeaponSlot7: return "WeaponSlot7";
+    case Action::WeaponSlot8: return "WeaponSlot8";
+    case Action::WeaponSlot9: return "WeaponSlot9";
+    case Action::QuickItem0: return "QuickItem0";
+    case Action::QuickItem1: return "QuickItem1";
+    case Action::QuickItem2: return "QuickItem2";
+    case Action::LastWeapon: return "LastWeapon";
     case Action::ToggleMelee: return "ToggleMelee";
     case Action::AmmoCheck: return "AmmoCheck";
     case Action::Taser: return "Taser";
     case Action::Throw: return "Throw";
     case Action::Grab: return "Grab";
     case Action::BlockHold: return "BlockHold";
+    case Action::CycleGrenade: return "CycleGrenade";
+    case Action::WeaponPrev: return "WeaponPrev";
+    case Action::WeaponNext: return "WeaponNext";
     case Action::FirearmTrigger: return "FirearmTrigger";
     case Action::ObjectivesA: return "ObjectivesA";
     case Action::ObjectivesB: return "ObjectivesB";
