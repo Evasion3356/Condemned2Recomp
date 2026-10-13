@@ -94,6 +94,7 @@ namespace rex::input::condemned2input{
          bool IsSprinting() { return isSprinting;}
          bool IsSelectingTool() { return isSelectingTool;}
          bool IsShowObjectives() { return showingObjectives;}
+         bool IsInjecting() const { return injecting_; }
 
       private:
          uint32_t packet_number_ = 0;
@@ -107,6 +108,10 @@ namespace rex::input::condemned2input{
             "Console##rex",
             "##launcherBg",
          };
+
+         //Logging
+         bool injecting_ = false;
+         bool logLeft_ = false, logRight_ = false, logMelee_ = false, logTool_ = false;
 
          //Mouse wheel (UI thread accumulates, game thread consumes)
          std::atomic<int> wheelTicks_{0};

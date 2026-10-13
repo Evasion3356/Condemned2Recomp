@@ -118,6 +118,94 @@ enum class Action : uint32_t {
 
 constexpr uint32_t kMaxActionId = 201;
 
+// Name of an action ID for logging, or "?" when the ID has no entry above.
+inline const char* ActionName(uint32_t id) {
+  switch (static_cast<Action>(id)) {
+    case Action::MoveForward: return "MoveForward";
+    case Action::MoveBackward: return "MoveBackward";
+    case Action::MoveAxisY: return "MoveAxisY";
+    case Action::MoveLeft: return "MoveLeft";
+    case Action::MoveRight: return "MoveRight";
+    case Action::StrafeAxisX: return "StrafeAxisX";
+    case Action::MouseLookY: return "MouseLookY";
+    case Action::MouseLookX: return "MouseLookX";
+    case Action::Start: return "Start";
+    case Action::Sprint: return "Sprint";
+    case Action::Attack: return "Attack";
+    case Action::MenuLeft: return "MenuLeft";
+    case Action::MenuRight: return "MenuRight";
+    case Action::LookAxisY: return "LookAxisY";
+    case Action::LookAxisX: return "LookAxisX";
+    case Action::Block: return "Block";
+    case Action::ToggleMelee: return "ToggleMelee";
+    case Action::AmmoCheck: return "AmmoCheck";
+    case Action::Taser: return "Taser";
+    case Action::Throw: return "Throw";
+    case Action::Grab: return "Grab";
+    case Action::BlockHold: return "BlockHold";
+    case Action::FirearmTrigger: return "FirearmTrigger";
+    case Action::ObjectivesA: return "ObjectivesA";
+    case Action::ObjectivesB: return "ObjectivesB";
+    case Action::Use: return "Use";
+    case Action::Kick: return "Kick";
+    case Action::MenuTabY: return "MenuTabY";
+    case Action::MenuTabX: return "MenuTabX";
+    case Action::MenuUse: return "MenuUse";
+    case Action::CancelTask: return "CancelTask";
+    case Action::Holster: return "Holster";
+    case Action::Slowmo: return "Slowmo";
+    case Action::ForensicsReturn: return "ForensicsReturn";
+    case Action::InventoryPanel: return "InventoryPanel";
+    case Action::Flashlight: return "Flashlight";
+    case Action::ForensicTools: return "ForensicTools";
+    case Action::DpadUp: return "DpadUp";
+    case Action::DpadDown: return "DpadDown";
+    case Action::DpadLeft: return "DpadLeft";
+    case Action::DpadRight: return "DpadRight";
+    case Action::ComboRight: return "ComboRight";
+    case Action::ComboLeft: return "ComboLeft";
+    case Action::TuneAxisX: return "TuneAxisX";
+    case Action::TuneAxisY: return "TuneAxisY";
+    case Action::MenuNavUp: return "MenuNavUp";
+    case Action::MenuNavDown: return "MenuNavDown";
+    case Action::MenuNavLeft: return "MenuNavLeft";
+    case Action::MenuNavRight: return "MenuNavRight";
+    case Action::MenuStickY: return "MenuStickY";
+    case Action::MenuConfirm: return "MenuConfirm";
+    case Action::MenuBack: return "MenuBack";
+    case Action::MenuStickX: return "MenuStickX";
+    case Action::MenuRtAlt: return "MenuRtAlt";
+    case Action::MenuBAlt: return "MenuBAlt";
+    case Action::MenuCategoryLeft: return "MenuCategoryLeft";
+    case Action::MenuCategoryRight: return "MenuCategoryRight";
+    case Action::AltRightStickY: return "AltRightStickY";
+    case Action::AltLeftStickY: return "AltLeftStickY";
+    case Action::AltLeftStickX: return "AltLeftStickX";
+    case Action::ToolSlotUV: return "ToolSlotUV";
+    case Action::ToolSlotSpectrometer: return "ToolSlotSpectrometer";
+    case Action::ToolSlotCamera: return "ToolSlotCamera";
+    case Action::ToolSlotGps: return "ToolSlotGps";
+    case Action::ToolSlotUp: return "ToolSlotUp";
+    case Action::ToolSlotDown: return "ToolSlotDown";
+    case Action::ToolSlotLeft: return "ToolSlotLeft";
+    case Action::ToolSlotRight: return "ToolSlotRight";
+    case Action::MenuA: return "MenuA";
+    case Action::MenuLt: return "MenuLt";
+    case Action::TaskAction: return "TaskAction";
+    case Action::InGameConfirm: return "InGameConfirm";
+    case Action::MenuLsClick: return "MenuLsClick";
+    case Action::MenuY: return "MenuY";
+    case Action::MenuX: return "MenuX";
+    case Action::DialogConfirmA: return "DialogConfirmA";
+    case Action::DialogConfirmB: return "DialogConfirmB";
+    case Action::DialogBack: return "DialogBack";
+    case Action::DialogConfirmC: return "DialogConfirmC";
+    case Action::DialogClose: return "DialogClose";
+    case Action::NoteInputTime: return "NoteInputTime";
+    default: return "?";
+  }
+}
+
 constexpr uint32_t ToId(Action a) { return static_cast<uint32_t>(a); }
 
 }  // namespace condemned2

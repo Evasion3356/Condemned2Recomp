@@ -57,6 +57,9 @@ REXCVAR_DEFINE_STRING(condemned2_input_objectives, "Tab", "Condemned 2/Input/Key
 REXCVAR_DEFINE_STRING(condemned2_input_mouse, "Mixed","Condemned 2/Input/Mouse", "Mouse Look Mode: Native (Needs low sensitivity!), Mixed (recommended), Disable").allowed({"Native", "Mixed", "Disable"});
 REXCVAR_DEFINE_DOUBLE(condemned2_input_mouse_sensitivity, 0.075, "Condemned 2/Input/Mouse", "Mouse Sensitivity (Raw Input)").range(0.01, 1.0);
 
+// Debug
+REXCVAR_DEFINE_BOOL(condemned2_input_log, true, "Condemned 2/Input/Debug", "Log input activity: clicks, injected actions and what the game did with them");
+
 //Native functions for inputs
 REX_EXTERN(__imp__Input_KeyDown);
 REX_EXTERN(__imp__Input_KeyHold);
@@ -74,6 +77,8 @@ REX_EXTERN(__imp__IsMeleeWeapon); // Checks if player's current weapon is a mele
 
 namespace rex::input::condemned2input {
   using condemned2::Action;
+  using condemned2::ActionName;
+  #define C2_INPUT_LOG(...) do { if (REXCVAR_GET(condemned2_input_log)) { REXLOG_INFO(__VA_ARGS__); } } while (0)
   namespace {constexpr rex::input::DeviceId kDevice = static_cast<rex::input::DeviceId>(0x4E4F5000); constexpr uint32_t kInputManager = 0x4005ae70;}
 
   Condemned2InputDriver* g_condemned2_input_driver = nullptr;
@@ -450,6 +455,14 @@ namespace rex::input::condemned2input {
       !hasMeleeWeapon ? isMouseRightPressed : isMouseLeftPressed, 
       !hasMeleeWeapon ? isMouseLeftPressed : isMouseRightPressed 
     };
+    if (REXCVAR_GET(condemned2_input_log)) {
+      const bool left = IsDown(activeBinds["condemned2_input_primary_fire"]);
+      const bool right = IsDown(activeBinds["condemned2_input_secondary_fire"]);
+      if (left != logLeft_ || right != logRight_ || hasMeleeWeapon != logMelee_ || isSelectingTool != logTool_) {
+        logLeft_ = left; logRight_ = right; logMelee_ = hasMeleeWeapon; logTool_ = isSelectingTool;
+        REXLOG_INFO("[c2in] state: mouse left={} right={} | melee weapon={} | forensic wheel held={}", left, right, hasMeleeWeapon, isSelectingTool);
+      }
+    }
     if(mouse_clicks.isMouseLeftPressed){
       NativeKeyPress(Action::FirearmTrigger);
       NativeKeyPress(Action::ComboRight);
@@ -526,10 +539,13 @@ namespace rex::input::condemned2input {
 
   // Native key presses in Condemned 2!
   void Condemned2InputDriver::NativeKeyPress(int32_t keycode, bool release ){
+    C2_INPUT_LOG("[c2in] inject {} {} ({:#x})", release ? "RELEASE" : "PRESS  ", ActionName(static_cast<uint32_t>(keycode)), keycode);
+    injecting_ = true;
     PressBind(kInputManager, keycode);
     if(!release){
       HoldBind(kInputManager, keycode);
     }
+    injecting_ = false;
   }
 
   //Resolves rex string cvars to mouse look enum!
@@ -544,6 +560,18 @@ namespace rex::input::condemned2input {
     }
   }
   
+  // Reports when the value we force for an action changes (not every poll).
+  void LogOverrideChange(const char* kind, uint32_t id, double value) {
+    if (!REXCVAR_GET(condemned2_input_log)) return;
+    static std::unordered_map<uint64_t, double> last;
+    const uint64_t key = (static_cast<uint64_t>(kind[0] == 'a') << 32) | id;
+    auto it = last.find(key);
+    const double prev = it == last.end() ? 0.0 : it->second;
+    if (prev == value) return;
+    last[key] = value;
+    REXLOG_INFO("[c2in] override {:<6} {} ({:#x}) {} -> {}", kind, ActionName(id), id, prev, value);
+  }
+
   double GetAxisOverrideValue(uint32_t btn){
     const Action action = static_cast<Action>(btn);
 
@@ -663,21 +691,29 @@ namespace rex::input::condemned2input {
     if( newValue != 0 ){
       ctx.f1.f64 = newValue;
     }
+    LogOverrideChange("axis", newID, newValue);
     //if ( ctx.f1.f64 != 0 ){
     //  REXLOG_INFO("[condemned2_input][Input_GetAxis] {:#x} {:#x} {}", newID, ctx.r4.u32, ctx.f1.f64);
     //}
   }
   REX_HOOK_RAW(Input_KeyDown){
-    REXLOG_INFO("[condemned2_input][Input_KeyDown] {:#x} {:#x}", ctx.r3.u32, ctx.r4.u64);
     __imp__Input_KeyDown(ctx, base);
   }
+  // The hooks below only report calls made while the driver is injecting an action, so the log
+  // shows what the game did with each injected action instead of every poll it makes.
   REX_HOOK_RAW(Input_KeyHold){
-    //REXLOG_INFO("[condemned2_input][Input_KeyHold] {:#x} {:#x}", ctx.r3.u32, ctx.r4.u64);
+    const uint32_t id = ctx.r4.u32;
     __imp__Input_KeyHold(ctx, base);
+    if (g_condemned2_input_driver && g_condemned2_input_driver->IsInjecting()) {
+      C2_INPUT_LOG("[c2in]   game KeyHold   {} ({:#x}) -> {}", ActionName(id), id, ctx.r3.u32 & 0xff);
+    }
   }
   REX_HOOK_RAW(Input_KeyUp){
-    REXLOG_INFO("[condemned2_input][Input_KeyUp] {:#x} {:#x}", ctx.r3.u32, ctx.r4.u64);
+    const uint32_t id = ctx.r4.u32;
     __imp__Input_KeyUp(ctx, base);
+    if (g_condemned2_input_driver && g_condemned2_input_driver->IsInjecting()) {
+      C2_INPUT_LOG("[c2in]   game KeyUp     {} ({:#x}) -> {}", ActionName(id), id, ctx.r3.u32 & 0xff);
+    }
   }
   REX_HOOK_RAW(Input_GetButton){
     //uint32_t temp = ctx.r3.u32;
@@ -687,11 +723,15 @@ namespace rex::input::condemned2input {
     if(newValue != 0){
       ctx.r3.u64 = newValue;
     }
+    LogOverrideChange("button", tempB, newValue);
     //REXLOG_INFO("[condemned2_input][Input_GetButton] {:#x} {:#x} {}", temp, tempB, ctx.r3.u64);
   }
   REX_HOOK_RAW(Input_PlayerInput){
-    REXLOG_INFO("[condemned2_input][Input_PlayerInput] {:#x} {:#x}", ctx.r3.u64, ctx.r4.u32);
+    const uint32_t id = ctx.r4.u32;
     __imp__Input_PlayerInput(ctx, base);
+    if (g_condemned2_input_driver && g_condemned2_input_driver->IsInjecting()) {
+      C2_INPUT_LOG("[c2in]     player handled {} ({:#x}) -> {}", ActionName(id), id, ctx.r3.u32 & 0xff);
+    }
   }
   
   // Handles on attack landed events!
