@@ -111,7 +111,7 @@ enum class Action : uint32_t {
   DialogConfirmA = 0xB5,  // [pad] A / Start
   DialogConfirmB = 0xB7,  // [pad] A
   DialogBack = 0xB8,    // [pad] B
-  DialogConfirmC = 0xB9,  // [pad] A
+  CameraShutter = 0xB9, // [XEX] A; WeaponDisplayDigitalCamera::OnEventPlayerCommandOn takes the photo on this ID
   DialogClose = 0xBA,   // [pad] B, closes tutorial dialogs
   NoteInputTime = 0xBC, // [guess] PlayerInput case 188 only stores a timestamp
 };
@@ -199,7 +199,7 @@ inline const char* ActionName(uint32_t id) {
     case Action::DialogConfirmA: return "DialogConfirmA";
     case Action::DialogConfirmB: return "DialogConfirmB";
     case Action::DialogBack: return "DialogBack";
-    case Action::DialogConfirmC: return "DialogConfirmC";
+    case Action::CameraShutter: return "CameraShutter";
     case Action::DialogClose: return "DialogClose";
     case Action::NoteInputTime: return "NoteInputTime";
     default: return "?";

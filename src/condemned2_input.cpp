@@ -337,6 +337,8 @@ namespace rex::input::condemned2input {
       NativeKeyPress(Action::InGameConfirm);
       NativeKeyPress(Action::DialogConfirmB); // Used for dialogs in fight club
       NativeKeyPress(Action::DialogClose); // Close tutorial dialogs
+      NativeKeyPress(Action::CameraShutter); // Forensic camera photo
+      NativeKeyPress(Action::MenuA); // Enter in in-world terminals
     }
     if(Pressed(activeBinds["menu_go_back"])){ //buttons |= X_INPUT_GAMEPAD_B;
       NativeKeyPress(Action::MenuBack);
@@ -474,6 +476,7 @@ namespace rex::input::condemned2input {
       NativeKeyPress(Action::ComboLeft);
       NativeKeyPress(Action::CancelTask);
       NativeKeyPress(Action::NoteInputTime);
+      NativeKeyPress(Action::CameraShutter); // The forensic camera takes its photo on this action
     }
 
     // Mouse look
