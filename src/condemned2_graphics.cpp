@@ -121,15 +121,13 @@ namespace rex::graphics::condemned2graphics {
 
     //Cvar settings
     REX_HOOK_RAW(GetBoolCvar){
-        if( ctx.r3.u32 == 0x820195C8 // RestartRenderBetweenMaps
-            //|| ctx.r3.u32 == 0x8202236C // VSyncOnFlip
-            //|| ctx.r3.u32 == 0x82019370 // DisableTripBuf
-        ){
-            ctx.r4.u32 = 1;
-            return;
-        }
+        // Do not force RestartRenderBetweenMaps (0x820195C8) on: restarting the renderer on soft
+        // loads (checkpoint reload, next section) destroys the HUD prompt UI until a full level
+        // restart (issue #38).
+        //0x8202236C VSyncOnFlip, 0x82019370 DisableTripBuf
         __imp__GetBoolCvar(ctx, base);
     }
+
     REX_HOOK_RAW(SetConfigCvar){
         double newVal = ctx.f1.f64;
         uint32_t ptr = ctx.r5.u32;
