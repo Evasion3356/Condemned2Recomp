@@ -99,7 +99,7 @@ namespace Condemned2 {
         const char* bundle;
     };
     static const WeaponBundle kWeaponBundles[] = {
-        { "Handgun_9mm", "Weap_Ranged", "Handgun_9mm", R"(Worlds\SP\Mission_06\M06_0000.bndl)" },
+        { "Handgun_9mm", "Weap_Ranged", "Handgun_9mm", R"(Worlds\SP\Mission_08\M08_0000.bndl)" },
         { "Handgun_22", "Weap_Ranged", "Pistol_22", R"(Worlds\SP\Mission_08\M08_0000.bndl)" },
         { "Handgun_38", "Weap_Ranged", "Revolver_38", R"(Worlds\SP\Mission_04\M04_0000.bndl)" },
         { "Handgun_44", "Weap_Ranged", "Handgun_44", R"(Worlds\SP\Mission_07\M07_0000.bndl)" },
@@ -487,7 +487,8 @@ namespace Condemned2 {
                 break;
             }
         }
-        if (!entry || HeapContains(std::format(R"({}\{}\)", entry->kind, entry->model), ".mesh")) {
+        //No heap residency check: stale name strings in freed buffers made it report weapons as loaded when they weren't.
+        if (!entry) {
             GiveWeapon(ctx, base, weapon);
             return;
         }
