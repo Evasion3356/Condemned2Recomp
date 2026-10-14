@@ -517,6 +517,10 @@ namespace Condemned2 {
             std::vector<std::string>& models = _filters[key];
             if (std::find(models.begin(), models.end(), model) == models.end())
                 models.push_back(model);
+            //Scope textures are named after the weapon record (fx\arsenal\scope\rifle_assault_scope), not the model.
+            std::string record = ToLower(weapon);
+            if (std::find(models.begin(), models.end(), record) == models.end())
+                models.push_back(record);
         }
         //The bundle is held but was loaded for other weapons only. A bundle is registered once per path, so release it and
         //load it again with this weapon added to the filter.
