@@ -76,8 +76,6 @@ namespace Condemned2 {
         // Skip In-Game Movies
         _hook->AddHook({"condemned2_cheat_skip_ingame_movies", 0, 0.0, 0.0, 1.0, false, [&](std::string_view name, std::string_view new_value) {
             _hook->SendCommandCmd("SkipIngameMovies",  std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) ); //SkipIngameMovies
-            _hook->SendCommandCmd({_hook->AllocateHeapForString("msg Player (ACQUIREWEAPON Handgun_22)"), 0, 0, 0});
-            _hook->SendCommandCmd({_hook->AllocateHeapForString("msg Player (TUTORIALTEXT Testing!)"), 0, 0, 0});
         }});
         _hook->SendCommandCmd("SkipIngameMovies",  std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_cheat_skip_ingame_movies") ) ) ); 
     }
