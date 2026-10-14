@@ -32,8 +32,14 @@ REXCVAR_DEFINE_BOOL(condemned2_cheat_top_gun_accuracy, false, "Condemned 2/Unloc
 //QoL
 REXCVAR_DEFINE_BOOL(condemned2_cheat_skip_intro_movies, false, "Condemned 2/QoL Improvements", "Skips intro movies.");
 REXCVAR_DEFINE_BOOL(condemned2_cheat_skip_ingame_movies, false, "Condemned 2/QoL Improvements", "Skips in-game movies.");
-
-REXCVAR_DEFINE_BOOL(condemned2_hud_show_weapon_stats, false, "Condemned 2/HUD Display", "Disables weapon display when looking at weapons.");
+//Weapon Spawner
+REXCVAR_DEFINE_STRING(condemned2_weapon_spawner, "None","Condemned 2/Unlockables", "Allows you to spawn any weapon in-game.").allowed({ //Values found in yeti.gamedb!
+    "None", "Baseball_Bat", "Baton", "BattleAxe", "Brick", "Broadsword", "Cleaver", "Crowbar", "FireAxe",
+    "Flashlight", "Golf_Club","Handgun_22", "Handgun_38", "Handgun_44", "Handgun_9mm", "Large_Wrench", 
+    "Paper_Cutter", "Pipe", "Pipe_Lever", "Pipe_Steam", "Rebar_Bent", "Rebar_Straight", "Rip_Hammer", 
+    "Rifle_Assault", "Rifle_Lever", "Shotgun_Double", "Shotgun_Pump", "Shotgun_Riot", "Special_Crossbow", 
+    "Subgun_Street", "Saw_Lollypop", "Short_Sword", "Shovel", "Skull", "Sledgehammer", "Tire_Iron", "War_Hammer"
+});
 
 //Rex Cvars
 namespace Condemned2 {
@@ -77,6 +83,15 @@ namespace Condemned2 {
         _hook->AddHook({"condemned2_cheat_skip_ingame_movies", 0, 0.0, 0.0, 1.0, false, [&](std::string_view name, std::string_view new_value) {
             _hook->SendCommandCmd("SkipIngameMovies",  std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) ); //SkipIngameMovies
         }});
+
+        rex::cvar::RegisterChangeCallback("condemned2_weapon_spawner", [&](std::string_view name, std::string_view new_value) {
+            if(std::string(new_value) == "None")
+                return;
+
+            _hook->SendCommandCmd({_hook->AllocateHeapForString(std::format("msg Player (ACQUIREWEAPON {})", std::string(new_value)).c_str()), 0, 0, 0});
+            _hook->SendCommandCmd({_hook->AllocateHeapForString(std::format("msg Player (ACQUIREAMMO {})", std::string(new_value)).c_str()), 0, 0, 0});
+            rex::cvar::SetFlagByName("condemned2_weapon_spawner", "None"); 
+        });
         _hook->SendCommandCmd("SkipIngameMovies",  std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_cheat_skip_ingame_movies") ) ) ); 
     }
  
