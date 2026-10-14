@@ -94,3 +94,5 @@
 0x821B1120 = {name="ParseBundle"} # ParseBundle(resource, stream): reads a .bndl and registers every resource in it
 0x821AE858 = {name="FindResourceHandler"} # FindResourceHandler(manager, resourceName, &handler): false makes ParseBundle skip that resource
 0x823079C8 = {name="GetControlInput"} # GetControlInput(input, "ControlName"): value of a named control, 0 while the player has not unlocked it yet (e.g. "Holster")
+0x823B0BF8 = {name="GetZoomShake"} # GetZoomShake(weapon, mode, float* out): scope sway from the weapon's "ZoomShake" record, false when it has none
+0x82340BF8 = {name="UpdateCameraSway"} # UpdateCameraSway(camera): sine wave camera offset from the CameraSway* config values

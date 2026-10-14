@@ -10,6 +10,9 @@
 //                  the story unlocks it (after Mission 4), and the player then drops the weapon. With the cheat on we report
 //                  the control as active, so the drop key stows the weapon in the holster instead. CanHolsterWeapon then checks
 //                  the weapon's "HolsterLevel"; we also accept any weapon the holster can hold.
+// No Sway:         scoped weapons shake by their "ZoomShake" database record (scaled by IdleShakePct and the player's
+//                  SkillAimZoomSway). The shake function returns false when there is none, so the cheat just does that.
+//                  The camera also drifts side to side by a sine wave (CameraSwayXFreq/XSpeed/YFreq/YSpeed), which we skip.
 // Spawn weapon:    runs "msg Player (ACQUIREWEAPON <weapon>)" through the game's command manager, same as its scripts do,
 //                  then fills its ammo (see GiveAmmo).
 
@@ -34,6 +37,7 @@ static const char* kNoWeapon = "None";
 REXCVAR_DEFINE_BOOL(condemned2_unlock_fps_mode, false, "Condemned 2/Cheats", "Unlock FPS Mode for every mission");
 REXCVAR_DEFINE_BOOL(condemned2_infinite_ammo, false, "Condemned 2/Cheats", "Infinite ammo");
 REXCVAR_DEFINE_BOOL(condemned2_unlock_holster, false, "Condemned 2/Cheats", "Unlock the holster in every mission");
+REXCVAR_DEFINE_BOOL(condemned2_no_sway, false, "Condemned 2/Cheats", "No Sway (steady scoped aim)");
 REXCVAR_DEFINE_STRING(condemned2_spawn_firearm, "None", "Condemned 2/Cheats", "Give firearm (in-game)").allowed({
     "None",
     "Handgun_22", "Handgun_38", "Handgun_44", "Handgun_9mm",
@@ -56,6 +60,8 @@ REXCVAR_DEFINE_STRING(condemned2_spawn_weapon_custom, "", "Condemned 2/Cheats", 
 REX_EXTERN(__imp__ProcessLookInput);
 REX_EXTERN(__imp__CanHolsterWeapon);
 REX_EXTERN(__imp__GetControlInput);
+REX_EXTERN(__imp__GetZoomShake);
+REX_EXTERN(__imp__UpdateCameraSway);
 REX_EXTERN(__imp__ParseBundle);
 REX_EXTERN(__imp__FindResourceHandler);
 
@@ -752,6 +758,22 @@ namespace Condemned2 {
         if ((ctx.r3.u32 & 0xFF) == 0 && REXCVAR_GET(condemned2_unlock_holster) && g_condemned2_cheats
             && g_condemned2_cheats->ShouldForceHolster(ctx, base, weapon, input))
             ctx.r3.u64 = 1;
+    }
+
+    //bool GetZoomShake(weapon, mode, float* shakeOut): false means the weapon has no scope shake
+    REX_HOOK_RAW(GetZoomShake) {
+        if (REXCVAR_GET(condemned2_no_sway)) {
+            ctx.r3.u64 = 0;
+            return;
+        }
+        __imp__GetZoomShake(ctx, base);
+    }
+
+    //void UpdateCameraSway(camera): offsets the camera by a sine wave scaled by the CameraSway* config values
+    REX_HOOK_RAW(UpdateCameraSway) {
+        if (REXCVAR_GET(condemned2_no_sway))
+            return;
+        __imp__UpdateCameraSway(ctx, base);
     }
 
     //int GetControlInput(input, const char* controlName)
