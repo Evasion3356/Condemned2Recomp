@@ -11,7 +11,7 @@
 #include <format>
 #include <condemned2_settings.h>
 
-REXCVAR_DEFINE_STRING(condemned2_app_version, "", "Condemned 2/Setup", "App Version").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(condemned2_app_version, "", "Condemned 2", "App Version").lifecycle(rex::cvar::Lifecycle::kInitOnly);
 
 namespace Condemned2 {
     void Condemned2Settings::SetDefaultPaths(rex::PathConfig& paths) {
