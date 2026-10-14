@@ -48,6 +48,7 @@ REX_EXTERN(__imp__Global_MinShadowLOD);
 REX_EXTERN(__imp__Global_ShadowLOD);
 REX_EXTERN(__imp__GetBoolCvar);
 REX_EXTERN(__imp__SetConfigCvar);
+REX_EXTERN(__imp__HudSpectatorModeChange);
 //Vd
 REX_EXTERN(__imp__MmFreePhysicalMemory);
 REX_EXTERN(__imp__MmAllocatePhysicalMemoryEx);
@@ -119,11 +120,31 @@ namespace rex::graphics::condemned2graphics {
         }
     }
 
+    // Issue #38: after dying and reloading a checkpoint the HUD never shows pickup/response prompts or
+    // the weapon ammo counter again until the level is exited to the main menu and resumed.
+    // The death camera fires a SpectatorModeChange event; the delegate (CActionScriptPlayer::
+    // OnSpectatorModeChange) forwards modes 1-5 to the HUD's ActionScript as SpectatorModeBegin, which sets
+    // b_InSpectatorMode = true and hides the ammo/weapon_stats widgets. The matching SpectatorModeExit only
+    // clears the flag when g_GameMode == "MP" and the server game state is 6, so in single player it can never
+    // be cleared. While the flag is set UpdateActivationPrompt returns early, so Flash never calls
+    // Player.CanPickUp/CanTakeAmmo again. This is most likely a bug in the original game: the HUD movie is
+    // reused across a checkpoint reload. Single player has no spectating, so don't tell the HUD about it.
+    REX_HOOK_RAW(HudSpectatorModeChange) {
+        uint32_t mode = 0;
+        if (ctx.r5.u32) {
+            std::memcpy(&mode, base + ctx.r5.u32, sizeof(mode));
+            mode = _byteswap_ulong(mode);
+        }
+        if (mode != 0) {
+            ctx.r3.u32 = 0;
+            return;
+        }
+        __imp__HudSpectatorModeChange(ctx, base);
+    }
+
     //Cvar settings
     REX_HOOK_RAW(GetBoolCvar){
-        // Do not force RestartRenderBetweenMaps (0x820195C8) on: restarting the renderer on soft
-        // loads (checkpoint reload, next section) destroys the HUD prompt UI until a full level
-        // restart (issue #38).
+        // Do not force RestartRenderBetweenMaps (0x820195C8) on.
         //0x8202236C VSyncOnFlip, 0x82019370 DisableTripBuf
         __imp__GetBoolCvar(ctx, base);
     }

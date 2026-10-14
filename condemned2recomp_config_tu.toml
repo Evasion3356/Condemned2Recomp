@@ -47,6 +47,7 @@
 0x824262C8 = {name="Player_UserSettings"}
 0x823C76A8 = {name="Player_ApplySettings"} 
 0x82221E40 = {name="ParseSWF"}
+0x824149D8 = {name="HudSpectatorModeChange"} # CActionScriptPlayer::OnSpectatorModeChange(player, params): forwards the spectator mode to the HUD movie (issue #38)
 
 # Level of Detail
 0x8212A400 = {name="ApplyDisplaySettings"}
