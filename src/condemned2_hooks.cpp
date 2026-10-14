@@ -297,6 +297,7 @@ namespace Condemned2 {
             );
             g_condemned2_hooks->RemovePendingCommand(key);
         }
+        g_condemned2_hooks->ResetScratchpad(); //Reset scratch after commands are processed.
         __imp__UpdateFrame(ctx, base);
     }
 

@@ -60,6 +60,7 @@ namespace Condemned2 {
             uint32_t SendCommandCmd(const char* command, HookValue newValue);
             uint32_t SendCommandCmd(uint32_t strAddress, HookValue newValue);
             void SendCommandCmd(CCommand newCmd);
+            void ResetScratchpad() { scratchOffset = 0; }
             
             std::unordered_map<uint32_t, double>& GetPendingConsoleCommands() { return pendingConsoleCommands; }
             void RemovePendingConsoleCommand(uint32_t cmd) { pendingConsoleCommands.erase(cmd); }
