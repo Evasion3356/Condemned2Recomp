@@ -122,13 +122,26 @@ namespace rex::graphics::condemned2graphics {
 
     // Issue #38: after dying and reloading a checkpoint the HUD never shows pickup/response prompts or
     // the weapon ammo counter again until the level is exited to the main menu and resumed.
-    // The death camera fires a SpectatorModeChange event; the delegate (CActionScriptPlayer::
-    // OnSpectatorModeChange) forwards modes 1-5 to the HUD's ActionScript as SpectatorModeBegin, which sets
-    // b_InSpectatorMode = true and hides the ammo/weapon_stats widgets. The matching SpectatorModeExit only
-    // clears the flag when g_GameMode == "MP" and the server game state is 6, so in single player it can never
-    // be cleared. While the flag is set UpdateActivationPrompt returns early, so Flash never calls
-    // Player.CanPickUp/CanTakeAmmo again. This is most likely a bug in the original game: the HUD movie is
-    // reused across a checkpoint reload. Single player has no spectating, so don't tell the HUD about it.
+    //
+    // Why the game enters spectator mode in single player (this is intended game behavior, not a failure to
+    // detect SP; the HUD's g_GameMode is "SP" and the game mode object at 0x82938A58 has mode 4 at +664):
+    //   - The per-frame player input handler (0x82314E18, called from Input_PlayerInput) sees the player is not
+    //     alive and asks sub_8230D530 for the next spectator mode, then sends a type 113 net message
+    //     (sub_8230E788). SP loops the message back locally and Player::SetSpectatorMode (0x82312AE8) runs.
+    //   - sub_8230D530 cycles 1..5 and skips modes rejected by sub_8230D3D0. Mode 1 is skipped, mode 2 needs a
+    //     follow target, mode 3 (clipping) is accepted because sub_8232D238() returns 0 for mode 4/5.
+    //     Death in SP therefore always ends up in spectator mode 3.
+    //   - The SpectatorModeChange delegate (CActionScriptPlayer::OnSpectatorModeChange, 0x824149D8) forwards modes
+    //     1-5 to the HUD ActionScript as SpectatorModeBegin, mode 0 as SpectatorModeExit.
+    //
+    // Why the HUD breaks: SpectatorModeBegin sets b_InSpectatorMode = true and hides the ammo/weapon_stats
+    // widgets without checking the game mode. SpectatorModeExit only clears it when g_GameMode == "MP" and the
+    // server game state is 6, so in SP it can never be cleared (it prints "Attempted to exit spectator mode but
+    // failed"). While the flag is set UpdateActivationPrompt returns early, so Flash never calls
+    // Player.CanPickUp/CanTakeAmmo again. Nothing resets it on a checkpoint reload because the HUD movie is
+    // reused. Only creating a new HUD movie (exit to main menu) runs the init function that clears it.
+    // This is most likely a bug in the original game; unverified whether the console avoids it by rebuilding
+    // the HUD movie. SP has no use for spectating in the HUD, so don't tell the HUD about it.
     REX_HOOK_RAW(HudSpectatorModeChange) {
         uint32_t mode = 0;
         if (ctx.r5.u32) {
