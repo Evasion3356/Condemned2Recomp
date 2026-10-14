@@ -31,10 +31,20 @@ namespace Condemned2 {
                 HookValue minValue;
                 HookValue maxValue;
                 bool scaleOnly; // Value only scales the default value!
+                rex::cvar::ChangeCallback callBack; // Uses its own call back!
             };
 
-            void InitializeHookCallbacks(rex::Runtime* runtime);
-            void RegisterCallbacks(std::vector<HookCallback> _newCallBacks, bool registerChange = true);
+            struct CCommand{
+                uint32_t cmd;
+                uint32_t param_1;
+                uint32_t param_2;
+                uint32_t param_3;
+                uint32_t mgr;
+            };
+
+            void InitializeHooks(rex::Runtime* runtime);
+            void InitializeCallbacks();
+            void RegisterCallbacks(std::vector<HookCallback> _newCallBacks);
             void ExecCallbackFunc(PPCContext& __restrict ctx, std::vector<HookCallback> _Settings);
             
             void SetMemoryFunc(const HookCallback& _cb, HookValue new_value);
@@ -45,8 +55,17 @@ namespace Condemned2 {
             void AddHook(const HookCallback& _cb){_callBacks.push_back(_cb);};
             static std::string GetSafeString(std::string_view new_value);
 
-            //void AddLookupHook(const HookCallback& _cb){_lookUpSet.push_back(_cb);};
-            //std::vector<HookCallback> GetConfigHooks() { return _lookUpSet; }
+            //Console vars
+            uint32_t AllocateHeapForString(const char* str);
+            uint32_t SendCommandCmd(const char* command, HookValue newValue);
+            uint32_t SendCommandCmd(uint32_t strAddress, HookValue newValue);
+            void SendCommandCmd(CCommand newCmd);
+            
+            std::unordered_map<uint32_t, double>& GetPendingConsoleCommands() { return pendingConsoleCommands; }
+            void RemovePendingConsoleCommand(uint32_t cmd) { pendingConsoleCommands.erase(cmd); }
+
+            std::unordered_map<uint32_t, CCommand> & GetPendingCommands() { return pendingCommands; }
+            void RemovePendingCommand(uint32_t cmd) { pendingCommands.erase(cmd); }
 
             static void set_pointer(uint8_t* physicalAddress, uint32_t newValue) {
                 rex::memory::store_and_swap<int>(physicalAddress, static_cast<uint32_t>(newValue));
@@ -75,9 +94,13 @@ namespace Condemned2 {
         private:
             rex::Runtime* _runtime;
             rex::memory::Memory* _memory;
+            uint32_t guestAddress;
+            size_t scratchOffset = 0;
+            uint32_t CCommandMgrPtr;
 
+            std::unordered_map<uint32_t, double> pendingConsoleCommands;
+            std::unordered_map<uint32_t, CCommand> pendingCommands;
             std::vector<HookCallback> _initialSet = {};
-            //std::vector<HookCallback> _lookUpSet = {};
             std::vector<HookCallback> _callBacks = { 
                 {"condemned2_update_rate", 0x82013B14, 60.0f },
                 {"condemned2_input_sensitivity_max", 0x82028EC4, 1.0f},
