@@ -25,16 +25,20 @@ REX_EXTERN(__imp__Unlockables_GunEfficiency);
 REX_EXTERN(__imp__Unlockables_Upgrades);
 
 //Cheats
-REXCVAR_DEFINE_BOOL(condemned2_cheat_fps_mode, false, "Condemned 2/Unlockables", "FPS Mode ( Must be enabled before entering menu!!! )");
-REXCVAR_DEFINE_BOOL(condemned2_cheat_unlock_all_levels, false, "Condemned 2/Unlockables", "Unlocks every level!");
-REXCVAR_DEFINE_BOOL(condemned2_cheat_unlock_upgrades, false, "Condemned 2/Unlockables", "Unlocks all upgrades!");
-REXCVAR_DEFINE_BOOL(condemned2_cheat_top_gun_accuracy, false, "Condemned 2/Unlockables", "Gives player 100% gun efficiency!");
+REXCVAR_DEFINE_BOOL(condemned2_cheat_fps_mode, false, "Condemned 2/Extras/Unlockables", "FPS Mode ( Must be enabled before entering menu!!! )");
+REXCVAR_DEFINE_BOOL(condemned2_cheat_unlock_all_levels, false, "Condemned 2/Extras/Unlockables", "Unlocks every level!");
+REXCVAR_DEFINE_BOOL(condemned2_cheat_unlock_upgrades, false, "Condemned 2/Extras/Unlockables", "Unlocks all upgrades!");
+REXCVAR_DEFINE_BOOL(condemned2_cheat_top_gun_accuracy, false, "Condemned 2/Extras/Unlockables", "Gives player 100% gun efficiency!");
 //QoL
-REXCVAR_DEFINE_BOOL(condemned2_qol_skip_intro_movies, false, "Condemned 2/QoL Improvements", "Skips intro movies.");
-REXCVAR_DEFINE_BOOL(condemned2_qol_skip_ingame_movies, false, "Condemned 2/QoL Improvements", "Skips in-game movies.");
+REXCVAR_DEFINE_BOOL(condemned2_qol_skip_intro_movies, false, "Condemned 2/Extras/QoL Improvements", "Skips intro movies.");
+REXCVAR_DEFINE_BOOL(condemned2_qol_skip_ingame_movies, false, "Condemned 2/Extras/QoL Improvements", "Skips in-game movies.");
+//Console
+//QoL
+REXCVAR_DEFINE_STRING(condemned2_cmd, "", "Condemned 2/Extras/Console", "Runs console variables.");
+REXCVAR_DEFINE_STRING(condemned2_msg, "", "Condemned 2/Extras/Console", "Sends commands to managers.");
 
 //Weapon Spawner
-REXCVAR_DEFINE_STRING(condemned2_weapon_spawner, "None","Condemned 2/Unlockables", "Allows you to spawn any weapon in-game.").allowed({ //Values found in yeti.gamedb!
+REXCVAR_DEFINE_STRING(condemned2_weapon_spawner, "None","Condemned 2/Extras/Unlockables", "Allows you to spawn any weapon in-game.").allowed({ //Values found in yeti.gamedb!
     "None", "Baseball_Bat", "Baton", "BattleAxe", "Brick", "Broadsword", "Cleaver", "Crowbar", "FireAxe",
     "Flashlight", "Golf_Club","Handgun_22", "Handgun_38", "Handgun_44", "Handgun_9mm", "Large_Wrench", 
     "Paper_Cutter", "Pipe", "Pipe_Lever", "Pipe_Steam", "Rebar_Bent", "Rebar_Straight", "Rip_Hammer", 
@@ -61,6 +65,7 @@ namespace Condemned2 {
         rex::cvar::RegisterChangeCallback("condemned2_cheat_unlock_upgrades", [&](std::string_view name, std::string_view new_value) {
             SetHasAllUpgrades(new_value == "true");
         });
+        //rex::cvar::SetFlagByName("condemned2_cheat_unlock_upgrades", rex::cvar::GetFlagByName("condemned2_cheat_unlock_upgrades") ); 
         SetHasAllUpgrades( std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_cheat_unlock_upgrades") ) ) );
 
         rex::cvar::RegisterChangeCallback("condemned2_cheat_top_gun_accuracy", [&](std::string_view name, std::string_view new_value) {
@@ -93,7 +98,31 @@ namespace Condemned2 {
 
             _hook->SendCommandCmd({_hook->AllocateHeapForString(std::format("msg Player (ACQUIREWEAPON {})", std::string(new_value)).c_str()), 0, 0, 0});
             _hook->SendCommandCmd({_hook->AllocateHeapForString(std::format("msg Player (ACQUIREAMMO {})", std::string(new_value)).c_str()), 0, 0, 0});
+            REXLOG_INFO("[condemned2_graphics][condemned2_weapon_spawner] {}", std::string(new_value));
             rex::cvar::SetFlagByName("condemned2_weapon_spawner", "None"); 
+        });
+
+        //Consoles
+        rex::cvar::RegisterChangeCallback("condemned2_cmd", [&](std::string_view name, std::string_view new_value) {
+            if(std::string(new_value).empty())
+                return;
+
+            std::string cmdString = std::string(new_value);
+            size_t pos = cmdString.find(' ');
+            std::string cmd = cmdString.substr(0, pos);
+            std::string cmdVal = cmdString.substr(pos + 1);
+            _hook->SendCommandCmd(cmd.c_str(), std::stod(cmdVal) ); 
+            REXLOG_INFO("[condemned2_graphics][condemned2_cmd] {}", std::string(new_value));
+            rex::cvar::SetFlagByName("condemned2_cmd", ""); 
+        });
+
+        rex::cvar::RegisterChangeCallback("condemned2_msg", [&](std::string_view name, std::string_view new_value) {
+            if(std::string(new_value).empty())
+                return;
+
+            _hook->SendCommandCmd({_hook->AllocateHeapForString(std::format("msg {}", std::string(new_value)).c_str()), 0, 0, 0});
+            REXLOG_INFO("[condemned2_graphics][condemned2_msg] {}", std::string(new_value));
+            rex::cvar::SetFlagByName("condemned2_msg", ""); 
         });
     }
  
