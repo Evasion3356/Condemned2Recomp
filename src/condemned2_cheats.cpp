@@ -109,6 +109,10 @@ namespace Condemned2 {
 
             std::string cmdString = std::string(new_value);
             size_t pos = cmdString.find(' ');
+            if (pos == std::string::npos){
+                REXLOG_INFO("[condemned2_graphics][condemned2_cmd] Invalid Command! {}", std::string(new_value));
+                return;
+            }
             std::string cmd = cmdString.substr(0, pos);
             std::string cmdVal = cmdString.substr(pos + 1);
             _hook->SendCommandCmd(cmd.c_str(), std::stod(cmdVal) ); 
