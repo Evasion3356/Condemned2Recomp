@@ -30,8 +30,9 @@ REXCVAR_DEFINE_BOOL(condemned2_cheat_unlock_all_levels, false, "Condemned 2/Unlo
 REXCVAR_DEFINE_BOOL(condemned2_cheat_unlock_upgrades, false, "Condemned 2/Unlockables", "Unlocks all upgrades!");
 REXCVAR_DEFINE_BOOL(condemned2_cheat_top_gun_accuracy, false, "Condemned 2/Unlockables", "Gives player 100% gun efficiency!");
 //QoL
-REXCVAR_DEFINE_BOOL(condemned2_cheat_skip_intro_movies, false, "Condemned 2/QoL Improvements", "Skips intro movies.");
-REXCVAR_DEFINE_BOOL(condemned2_cheat_skip_ingame_movies, false, "Condemned 2/QoL Improvements", "Skips in-game movies.");
+REXCVAR_DEFINE_BOOL(condemned2_qol_skip_intro_movies, false, "Condemned 2/QoL Improvements", "Skips intro movies.");
+REXCVAR_DEFINE_BOOL(condemned2_qol_skip_ingame_movies, false, "Condemned 2/QoL Improvements", "Skips in-game movies.");
+
 //Weapon Spawner
 REXCVAR_DEFINE_STRING(condemned2_weapon_spawner, "None","Condemned 2/Unlockables", "Allows you to spawn any weapon in-game.").allowed({ //Values found in yeti.gamedb!
     "None", "Baseball_Bat", "Baton", "BattleAxe", "Brick", "Broadsword", "Cleaver", "Crowbar", "FireAxe",
@@ -68,22 +69,24 @@ namespace Condemned2 {
         SetHasTopGunEfficiency( std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_cheat_top_gun_accuracy") ) ) );
 
         // FPS Mode ( Unlimited Ammo + Starting Firearm )
-        _hook->AddHook({"condemned2_cheat_fps_mode", 0, 0.0, 0.0, 1.0, false, [&](std::string_view name, std::string_view new_value) {
+        rex::cvar::RegisterChangeCallback("condemned2_cheat_fps_mode", [&](std::string_view name, std::string_view new_value) {
              _hook->SendCommandCmd("FPSMode",  std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) ); 
-        }});
+        });
         _hook->SendCommandCmd("FPSMode",  std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_cheat_fps_mode") ) ) ); 
 
         // Skip Intro Movies ( BUG: Skips movies, but breaks at start screen!? )
-        _hook->AddHook({"condemned2_cheat_skip_intro_movies", 0, 0.0, 0.0, 1.0, false, [&](std::string_view name, std::string_view new_value) {
+        rex::cvar::RegisterChangeCallback("condemned2_qol_skip_intro_movies", [&](std::string_view name, std::string_view new_value) {
             _hook->SendCommandCmd("SkipSplashScreens",  std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) ); //SkipSplashScreens
-        }});
-        _hook->SendCommandCmd("SkipSplashScreens",  std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_cheat_skip_intro_movies") ) ) ); 
+        });
+        _hook->SendCommandCmd("SkipSplashScreens",  std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_qol_skip_intro_movies") ) ) ); 
     
         // Skip In-Game Movies
-        _hook->AddHook({"condemned2_cheat_skip_ingame_movies", 0, 0.0, 0.0, 1.0, false, [&](std::string_view name, std::string_view new_value) {
+        rex::cvar::RegisterChangeCallback("condemned2_qol_skip_ingame_movies", [&](std::string_view name, std::string_view new_value) {
             _hook->SendCommandCmd("SkipIngameMovies",  std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) ); //SkipIngameMovies
-        }});
+        });
+        _hook->SendCommandCmd("SkipIngameMovies",  std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_qol_skip_ingame_movies") ) ) ); 
 
+        //Weapon Spawner
         rex::cvar::RegisterChangeCallback("condemned2_weapon_spawner", [&](std::string_view name, std::string_view new_value) {
             if(std::string(new_value) == "None")
                 return;
@@ -92,7 +95,6 @@ namespace Condemned2 {
             _hook->SendCommandCmd({_hook->AllocateHeapForString(std::format("msg Player (ACQUIREAMMO {})", std::string(new_value)).c_str()), 0, 0, 0});
             rex::cvar::SetFlagByName("condemned2_weapon_spawner", "None"); 
         });
-        _hook->SendCommandCmd("SkipIngameMovies",  std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_cheat_skip_ingame_movies") ) ) ); 
     }
  
     REX_HOOK_RAW(Unlockables_Levels) { 
