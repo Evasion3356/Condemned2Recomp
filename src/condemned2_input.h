@@ -74,6 +74,13 @@ namespace rex::input::condemned2input{
          void SetMouseLookTypeFromString( std::string mouseMode );
          MouseLookType GetMouseLookType() { return mouseLookType; }
          std::pair<double, double> RawMouse() { return {last_dx, last_dy}; }
+         // Moves the counts gathered since the last camera update into the per-frame value (game thread)
+         void BeginMouseLookFrame() {
+            std::lock_guard<std::mutex> lock(mouseAccumMutex_);
+            frame_dx_ = accum_dx_; frame_dy_ = accum_dy_;
+            accum_dx_ = accum_dy_ = 0;
+         }
+         std::pair<double, double> FrameMouse() { return {frame_dx_, frame_dy_}; }
          std::pair<double, double> AccumMouse() { return {last_add_dx, last_add_dy}; }
          std::pair<double, double> MoveVel() { return {move_dx, move_dy}; }
          MouseBind MouseClick() { return mouse_clicks; }
@@ -131,6 +138,10 @@ namespace rex::input::condemned2input{
          double last_dy;
          double last_add_dx;
          double last_add_dy;
+         //Native mouse look: raw counts accumulate from every poll, then the game consumes them once per camera update
+         std::mutex mouseAccumMutex_;
+         double accum_dx_ = 0, accum_dy_ = 0;
+         double frame_dx_ = 0, frame_dy_ = 0;
 
          //Custom input
          bool blockFirstFrame = false;

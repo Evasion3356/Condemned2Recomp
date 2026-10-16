@@ -54,8 +54,9 @@ REXCVAR_DEFINE_STRING(condemned2_input_check, "H", "Condemned 2/Input/Keyboard",
 REXCVAR_DEFINE_STRING(condemned2_input_objectives, "Tab", "Condemned 2/Input/Keyboard", "Current Objectives");
 
 // Mouse Settings
-REXCVAR_DEFINE_STRING(condemned2_input_mouse, "Mixed","Condemned 2/Input/Mouse", "Mouse Look Mode: Native (Needs low sensitivity!), Mixed (recommended), Disable").allowed({"Native", "Mixed", "Disable"});
-REXCVAR_DEFINE_DOUBLE(condemned2_input_mouse_sensitivity, 0.075, "Condemned 2/Input/Mouse", "Mouse Sensitivity (Raw Input)").range(0.01, 1.0);
+REXCVAR_DEFINE_STRING(condemned2_input_mouse, "Mixed","Condemned 2/Input/Mouse", "Mouse Look Mode: Native (framerate independent, uses Native Mouse Sensitivity), Mixed (gamepad-style response), Disable").allowed({"Native", "Mixed", "Disable"});
+REXCVAR_DEFINE_DOUBLE(condemned2_input_mouse_sensitivity, 0.075, "Condemned 2/Input/Mouse", "Mouse Sensitivity (Raw Input, Mixed mode)").range(0.01, 1.0);
+REXCVAR_DEFINE_DOUBLE(condemned2_input_mouse_native_sensitivity, 0.1, "Condemned 2/Input/Mouse", "Native Mouse Sensitivity (degrees of turn per mouse count)").range(0.005, 2.0);
 
 // Debug
 REXCVAR_DEFINE_BOOL(condemned2_input_log, true, "Condemned 2/Input/Debug", "Log input activity: clicks, injected actions and what the game did with them");
@@ -505,6 +506,11 @@ namespace rex::input::condemned2input {
       SDL_GetRelativeMouseState(&dx, &dy);
     }
     double sensitivity = REXCVAR_GET(condemned2_input_mouse_sensitivity);
+    {
+      std::lock_guard<std::mutex> lock(mouseAccumMutex_);
+      accum_dx_ += dx;
+      accum_dy_ += dy;
+    }
     last_dx = dx * sensitivity;
     last_dy = dy * sensitivity;
     // Additive mouse delta
@@ -658,11 +664,21 @@ namespace rex::input::condemned2input {
       if ( action == Action::LookAxisX || action == Action::LookAxisY ){
         return 0;
       }
+      // The native routine applies counts * MouseSensitivity * MouseAimDampen (0.8) straight to the camera with no
+      // frame-time scaling, in radians. Convert degrees/count to that, so the setting is framerate independent.
+      constexpr double kDegToRad = 3.14159265358979323846 / 180.0;
+      constexpr double kMouseAimDampen = 0.8;
+      const double scale = REXCVAR_GET(condemned2_input_mouse_native_sensitivity) * kDegToRad / kMouseAimDampen;
+      // The camera update reads X then Y exactly once per frame, so X marks the start of a frame.
       if (action == Action::MouseLookX) {
-        return rawMouse.first;
+        g_condemned2_input_driver->BeginMouseLookFrame();
+      }
+      std::pair<double,double> frameMouse = g_condemned2_input_driver->FrameMouse();
+      if (action == Action::MouseLookX) {
+        return frameMouse.first * scale;
       }
       if (action == Action::MouseLookY) {
-        return rawMouse.second;
+        return frameMouse.second * scale;
       }
     }else if (g_condemned2_input_driver->GetMouseLookType() == MouseLookType::MIXED){ // Overrides gamepad input to use raw mouse input, retaining more subtle behaviors from the gamepad input.
       if ( action == Action::MouseLookX || action == Action::MouseLookY ){
