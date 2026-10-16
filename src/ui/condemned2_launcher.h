@@ -22,11 +22,26 @@
 #include <suite/xdvdfs_extractor.h>
 #include <suite/title_updater.h>
 #include <suite/curl_downloader.h>
+#include <suite/process_runner.h>
 #include <ui/condemned2_widgets.h>
 
-REXCVAR_DEFINE_STRING(condemned2_tu_patch_dl_link, "https://xboxunity.net/Resources/Lib/TitleUpdate.php?tuid=21001", "Condemned 2", "Title Update Download Link").lifecycle(rex::cvar::Lifecycle::kInitOnly);;
-REXCVAR_DEFINE_STRING(condemned2_tu_patch_filename, "TU_19KA1VF_0000004000000.00000000000G1", "Condemned 2", "Title Update Filename").lifecycle(rex::cvar::Lifecycle::kInitOnly);;
-REXCVAR_DEFINE_STRING(condemned2_tu_patch_hash, "1ce63d845307c18873b737c4cb6d0ed0622e994aaa6d24ab14654530061e12be", "Condemned 2", "Title Update Hash").lifecycle(rex::cvar::Lifecycle::kInitOnly);;
+REXCVAR_DEFINE_STRING(condemned2_tu_patch_dl_link, "https://xboxunity.net/Resources/Lib/TitleUpdate.php?tuid=21001", "Condemned 2", "Title Update Download Link").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(condemned2_tu_patch_filename, "TU_19KA1VF_0000004000000.00000000000G1", "Condemned 2", "Title Update Filename").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(condemned2_tu_patch_hash, "1ce63d845307c18873b737c4cb6d0ed0622e994aaa6d24ab14654530061e12be", "Condemned 2", "Title Update Hash").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+
+REXCVAR_DEFINE_STRING(condemned2_quickbms_filename, "quickbms.zip", "Condemned 2", "QuickBMS Filename").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+//QuickBMS for Windows and Linux
+#if REX_PLATFORM_WIN32
+REXCVAR_DEFINE_STRING(condemned2_quickbms_url, "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_win.zip", "Condemned 2", "QuickBMS Download").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(condemned2_quickbms_hash, "b9d4f9efb55692994cd42a491cfea11f86e3375a618b9bd771583ce40ddb3828", "Condemned 2", "QuickBMS Hash").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+#elif REX_PLATFORM_LINUX
+REXCVAR_DEFINE_STRING(condemned2_quickbms_url, "https://github.com/LittleBigBug/QuickBMS/releases/download/0.12.0/quickbms_linux.zip", "Condemned 2", "QuickBMS Download").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(condemned2_quickbms_hash, "b702019930ba44e2a0e124338ec737ceaf9b83a1ab747affd3fb19ef3b6aea88", "Condemned 2", "QuickBMS Hash").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+#endif
+
+REXCVAR_DEFINE_STRING(condemned2_quickbms_script_filename, "condemned2.bms", "Condemned 2", "QuickBMS Filename").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(condemned2_quickbms_script_url, "https://aluigi.altervista.org/bms/condemned2.bms", "Condemned 2", "QuickBMS Script Download").lifecycle(rex::cvar::Lifecycle::kInitOnly);
+REXCVAR_DEFINE_STRING(condemned2_quickbms_script_hash, "0acc7be36f094fe06285b05a04e8f6af78538e975309feb2b0393efc1df33a64", "Condemned 2", "QuickBMS Script Hash").lifecycle(rex::cvar::Lifecycle::kInitOnly);
 
 namespace Condemned2 {
 
@@ -36,11 +51,20 @@ namespace Condemned2 {
         //Installations
         None,
         Intro, // Opening message for first-time installer
+        //Iso
         IsoSelect, // Selects Assets Directory and Game Iso to extract
         IsoExtract, // Extracts game iso and shows progress bar
+        //Title Update
         TUSelect, // Message that lets user know the Title Update will be downloaded
         TUDownload, // Downloads Title Update and shows progress bar
         TUExtract, // Extracts Title Update ( Might only show briefly on small Title Updates )
+        //Full Extraction
+        FullExtract, // Extracts Arch02 files
+        BMSDownload, // Downloads QuickBMS based on platform
+        BMSScript, // Downloads the QuickBMS script!
+        BMSExtract01, // Run QuickBMS to extract
+        BMSExtract02, // Run QuickBMS to extract
+        BMSFinish, //Notifies user of completion and edits config
         //Menus
         PCMenu, // Separate PC only menu
         PCSettings, //Adjusts PC game settings
@@ -50,6 +74,7 @@ namespace Condemned2 {
         //Errors
         ISOFailed, // Iso extraction failed, user can retry or quit
         TUFailed, // Title update download or extraction failed, user can retry or quit
+        FEFailed, // Full extraction failed, user can retry or quit
         //End states
         Exit, // Quits application
         Complete, // Resumes to game
@@ -59,14 +84,17 @@ namespace Condemned2 {
         std::function<void(ImGuiIO& io)> onDraw;
         std::function<void()> onStart;
         LauncherState nextState = LauncherState::None;
+        LauncherState skipState = LauncherState::None;
 
         std::string header = "Recompilation";
         std::string body;
         std::string nextBtnLabel = "Next";
+        std::string skipBtnLabel = "Skip";
 
         ImVec2 windowSize = ImVec2(640, 480); 
         bool hasLog = false;
         bool hasProgressBar = false;
+        bool hasButtons = true;
         bool showError = false;
         bool customOnly = false;
       };
@@ -130,7 +158,7 @@ namespace Condemned2 {
         TUSelect.onStart = [&](){
           ClearLog(); //Clear logs from ISO extraction
           std::string filename = REXCVAR_GET(condemned2_tu_patch_filename);
-          _workPath = _paths.config_path.parent_path() / filename;
+          _workPath = _tempPath / filename; //_paths.config_path.parent_path() / filename;
           if (std::filesystem::is_regular_file(_paths.game_data_root / "default.xexp")) {
             pendingState = LauncherState::Complete;
           }
@@ -164,7 +192,7 @@ namespace Condemned2 {
         TUExtract.onStart = [&](){
           workerThread = RexGlueSuite::TitleUpdater::NewThread(_workPath, _copiedBytes, _fullSize, {
             _paths.game_data_root,
-            [&]() {pendingState = LauncherState::Complete;}, 
+            [&]() {pendingState = LauncherState::FullExtract;}, 
             [&](std::string err) {
               SetError( std::move(err) ); 
               pendingState = LauncherState::TUFailed;
@@ -173,6 +201,109 @@ namespace Condemned2 {
           });
         };
         stateTable[LauncherState::TUExtract] = TUExtract;
+            
+        //Full Extraction (Optional)
+        LauncherDialog FullExtract;
+        FullExtract.nextState = LauncherState::BMSDownload;
+        FullExtract.skipState = LauncherState::Complete;
+        FullExtract.header = "Full Game Extraction";
+        FullExtract.body = "This will download QuickBMS to extract all assets from the game's archive files. This is recommended for the best performance and modding capabilities.";
+        FullExtract.nextBtnLabel = "Start";
+        FullExtract.windowSize = ImVec2(640, 160);
+        FullExtract.onStart = [&](){
+          ClearLog(); //Clear logs from TU extraction
+          std::string filename = REXCVAR_GET(condemned2_quickbms_filename);
+          _workPath = _tempPath / filename; //_paths.config_path.parent_path() / filename;
+        };
+        stateTable[LauncherState::FullExtract] = FullExtract;
+
+        LauncherDialog BMSDownload;
+        BMSDownload.header = "Downloading QuickBMS";
+        BMSDownload.body = "Please wait while QuickBMS downloads...";
+        BMSDownload.windowSize = ImVec2(640, 120);
+        BMSDownload.hasProgressBar = true;
+        BMSDownload.onStart =  [&](){
+          std::string url = REXCVAR_GET(condemned2_quickbms_url);
+          std::string hash = REXCVAR_GET(condemned2_quickbms_hash);
+          workerThread = RexGlueSuite::Downloader::NewThread(url, hash, _copiedBytes, _fullSize, {
+            _workPath, 
+            [&]() {pendingState = LauncherState::BMSScript;}, 
+            [&](std::string err) {
+              SetError( std::move(err) ); 
+              pendingState = LauncherState::FEFailed;
+            }
+          });
+        };
+        stateTable[LauncherState::BMSDownload] = BMSDownload;
+
+        LauncherDialog BMSScript;
+        BMSScript.header = "Downloading Script";
+        BMSScript.body = "Please wait while the QuickBMS script downloads...";
+        BMSScript.windowSize = ImVec2(640, 120);
+        BMSScript.hasProgressBar = true;
+        BMSScript.onStart =  [&](){
+          std::string url = REXCVAR_GET(condemned2_quickbms_script_url);
+          std::string hash = REXCVAR_GET(condemned2_quickbms_script_hash);
+          std::string filename = REXCVAR_GET(condemned2_quickbms_script_filename);
+          _workPath = _tempPath / filename; //_paths.config_path.parent_path() / filename;
+          workerThread = RexGlueSuite::Downloader::NewThread(url, hash, _copiedBytes, _fullSize, {
+            _workPath, 
+            [&]() {pendingState = LauncherState::BMSExtract01;}, 
+            [&](std::string err) {
+              SetError( std::move(err) ); 
+              pendingState = LauncherState::FEFailed;
+            }
+          });
+        };
+        stateTable[LauncherState::BMSScript] = BMSScript;
+
+        LauncherDialog BMSExtract01;
+        BMSExtract01.header = "Extracting Layer01.Arch";
+        BMSExtract01.body = "Please wait while the Game archives extract...";
+        BMSExtract01.windowSize = ImVec2(1024, 768);
+        BMSExtract01.hasLog = true;
+        BMSExtract01.hasButtons = false;
+        BMSExtract01.onStart = [&](){
+          std::string filename = REXCVAR_GET(condemned2_quickbms_script_filename);
+          workerThread = RexGlueSuite::ProcessRunner::NewThread(_tempPath / ".extracted" / "quickbms.exe", 
+            {"-Y","-o",(_tempPath / filename).string(), (_paths.game_data_root / "Layer01.arch02").string(), (_paths.game_data_root / "game").string() }, {
+            _tempPath / ".extracted",
+            [&]() {pendingState = LauncherState::BMSExtract02;}, 
+            [&](std::string err) {
+              ClearLog(); //Clear logs
+              SetError( std::move(err) ); 
+              pendingState = LauncherState::FEFailed;
+            },
+            [&](std::string log) { SetLog( std::move(log) ); }
+          });
+        };
+        stateTable[LauncherState::BMSExtract01] = BMSExtract01;
+
+        LauncherDialog BMSExtract02;
+        BMSExtract02.header = "Extracting Layer02.Arch";
+        BMSExtract02.body = "Please wait while the Game archives extract...";
+        BMSExtract02.windowSize = ImVec2(1024, 768);
+        BMSExtract02.hasLog = true;
+        BMSExtract02.hasButtons = false;
+        BMSExtract02.onStart = [&](){
+          std::string filename = REXCVAR_GET(condemned2_quickbms_script_filename);
+          workerThread = RexGlueSuite::ProcessRunner::NewThread(_tempPath / ".extracted" / "quickbms.exe", 
+            {"-Y","-o",(_tempPath / filename).string(), (_paths.game_data_root / "Layer02.arch02").string(), (_paths.game_data_root / "game").string() }, {
+            _tempPath / ".extracted",
+            [&]() {pendingState = LauncherState::BMSFinish;}, 
+            [&](std::string err) {
+              ClearLog(); //Clear logs
+              SetError( std::move(err) ); 
+              pendingState = LauncherState::FEFailed;
+            },
+            [&](std::string log) { SetLog( std::move(log) ); }
+          });
+        };
+        stateTable[LauncherState::BMSExtract02] = BMSExtract02;
+
+        LauncherDialog BMSFinish;
+        BMSFinish.onStart = [&](){FinishInstallation(true);};
+        stateTable[LauncherState::BMSFinish] = BMSFinish;
 
         //Error Dialogs
         LauncherDialog ISOFailed;
@@ -192,6 +323,16 @@ namespace Condemned2 {
         TUFailed.windowSize = ImVec2(640, 160);
         TUFailed.showError = true;
         stateTable[LauncherState::TUFailed] = TUFailed;
+
+        LauncherDialog FEFailed;
+        FEFailed.nextState = LauncherState::BMSDownload;
+        FEFailed.skipState = LauncherState::Complete;
+        FEFailed.header = "Full Extraction Failed";
+        FEFailed.body = "Condemned 2's .Arch02 files failed to extract. Please check the latest log for more information!!!";
+        FEFailed.nextBtnLabel = "Retry";
+        FEFailed.windowSize = ImVec2(640, 160);
+        FEFailed.showError = true;
+        stateTable[LauncherState::FEFailed] = FEFailed;
 
         //PC Menus
         LauncherDialog PCMenu;
@@ -217,24 +358,56 @@ namespace Condemned2 {
         stateTable[LauncherState::Exit] = stepExit;
 
         LauncherDialog stepComplete;
-        stepComplete.onStart = [&](){CloseDialog();};
+        stepComplete.onStart = [&](){FinishInstallation();};
         stateTable[LauncherState::Complete] = stepComplete;
+
+        //Create temp folder for extractions and downloads.
+        _tempPath = defaults.cache_root / ".temp";
+        std::filesystem::create_directories(_tempPath);
       }
 
       ~GameLauncherDialog(){
         if (workerThread.joinable()) {
           workerThread.join();
         }
+
+        //Remove temp folder!
+        if (std::filesystem::exists(_tempPath) && std::filesystem::is_directory(_tempPath)){
+          std::filesystem::remove_all(_tempPath);
+        }
       }
 
       void CloseDialog(){
-          if (_resume) {
-            _resume(_paths);
-            _resume = nullptr;
+        if (_resume) {
+          _resume(_paths);
+          _resume = nullptr;
+        }
+        if (_onClose) {
+          _onClose();
+        }
+      }
+
+      void FinishInstallation(bool updateConfig = false){
+          if (std::filesystem::exists(_tempPath) && std::filesystem::is_directory(_tempPath)){
+            std::filesystem::remove_all(_tempPath);
           }
-          if (_onClose) {
-            _onClose();
+          if(updateConfig){
+            const auto archCfg = _paths.game_data_root / "default.archcfg";
+            if (std::filesystem::exists(archCfg)) {
+              std::ofstream file(archCfg);
+              file << "d:\\Game\n";
+            }
+
+            const auto layer01 = _paths.game_data_root / "Layer01.arch02";
+            const auto layer02 = _paths.game_data_root / "Layer02.arch02";
+            if (std::filesystem::exists(layer01)) {
+                std::filesystem::remove(layer01);
+            }
+            if (std::filesystem::exists(layer02)) {
+                std::filesystem::remove(layer02);
+            }
           }
+          CloseDialog();
       }
       
       void SetState(LauncherState newState){
@@ -357,7 +530,7 @@ namespace Condemned2 {
         }
         //Prints messages from processes running in a new thread
         if(newStep.hasLog){
-          ImGui::BeginChild("progressLog", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y - 64), true, ImGuiWindowFlags_HorizontalScrollbar);
+          ImGui::BeginChild("progressLog", ImVec2(ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y - ( newStep.hasProgressBar ? 64 : 0 ) ), true, ImGuiWindowFlags_HorizontalScrollbar);
           std::string logSnapshot = GetLogSnapshot();
           if(!logSnapshot.empty()){
             UIWidgets::AddText(logSnapshot.c_str(), _loadedFonts["ZTNature-Black"], ImVec2(128, 32), ImVec4(1.0f, 1.0f, 1.0f, 1.0f), 14.0f, false, false, false );
@@ -377,14 +550,25 @@ namespace Condemned2 {
         UIWidgets::DrawGradientBackground(ImGui::GetItemRectMin(), ImGui::GetItemRectMax() );
 
         //Menu Commands
-        if(!newStep.hasProgressBar){
+        if( newStep.hasButtons && !newStep.hasProgressBar){
+          bool useSkip = newStep.skipState != LauncherState::None;
+          int btnWidth = ImGui::GetContentRegionAvail().x * 0.495f;
+          if ( useSkip ){
+            btnWidth = ImGui::GetContentRegionAvail().x * 0.325f;
+          }
           if ( !newStep.nextBtnLabel.empty() ){
-            if (UIWidgets::AddButton(newStep.nextBtnLabel.c_str(), _loadedFonts["ZTNature-Black"])) {
+            if (UIWidgets::AddButton(newStep.nextBtnLabel.c_str(), _loadedFonts["ZTNature-Black"], ImVec2(btnWidth, 64))) {
               pendingState = newStep.nextState;
             }          
           }
           ImGui::SameLine();
-          if (UIWidgets::AddButton("Cancel",  _loadedFonts["ZTNature-Black"])) {
+          if ( useSkip ){
+            if (UIWidgets::AddButton(newStep.skipBtnLabel.c_str(), _loadedFonts["ZTNature-Black"], ImVec2(btnWidth, 64))) {
+              pendingState = newStep.skipState;
+            }          
+          }
+          ImGui::SameLine();
+          if (UIWidgets::AddButton("Cancel",  _loadedFonts["ZTNature-Black"], ImVec2(btnWidth, 64))) {
             pendingState = LauncherState::Exit;
           }
         }
@@ -512,6 +696,7 @@ namespace Condemned2 {
 
         rex::PathConfig _paths;
         std::filesystem::path _workPath;
+        std::filesystem::path _tempPath;
         std::atomic<uint64_t> _copiedBytes{0};
         std::atomic<uint64_t> _fullSize{0};
 
