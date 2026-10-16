@@ -42,6 +42,8 @@ namespace Condemned2 {
                 uint32_t mgr;
             };
 
+            rex::memory::Memory *GetMemory() { return _memory; }
+
             void InitializeHooks(rex::Runtime* runtime);
             void InitializeCallbacks();
             void RegisterCallbacks(std::vector<HookCallback> _newCallBacks);
@@ -92,6 +94,7 @@ namespace Condemned2 {
             static int get_int(uint8_t* physicalAddress) {
                 return rex::memory::load<int>(physicalAddress);
             };
+
         private:
             rex::Runtime* _runtime;
             rex::memory::Memory* _memory;

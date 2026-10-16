@@ -325,7 +325,7 @@ namespace Condemned2 {
         stateTable[LauncherState::TUFailed] = TUFailed;
 
         LauncherDialog FEFailed;
-        FEFailed.nextState = LauncherState::BMSDownload;
+        FEFailed.nextState = LauncherState::FullExtract;
         FEFailed.skipState = LauncherState::Complete;
         FEFailed.header = "Full Extraction Failed";
         FEFailed.body = "Condemned 2's .Arch02 files failed to extract. Please check the latest log for more information!!!";
