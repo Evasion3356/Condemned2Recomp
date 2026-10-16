@@ -31,10 +31,12 @@ REX_EXTERN(__imp__GetFloatCVar);
 REX_EXTERN(__imp__SetConfigCvar);
 REX_EXTERN(__imp__GetBoolCvar);
 REX_EXTERN(__imp__SetIntCvar);
+REX_EXTERN(__imp__CCommandMgr_Process);
+REX_EXTERN(__imp__Game_LoadExtResource);
+REX_EXTERN(__imp__LoadModelFile);
 REX_IMPORT(SetIntCvar, SendConsoleInt, u32(u32, u32));
 REX_IMPORT(GetFloatCVar, SendConsoleFloat, double(double, u32 ));
 REX_IMPORT(GetBoolCvar, SendConsoleBool, int(u32, int));
-REX_EXTERN(__imp__CCommandMgr_Process);
 REX_IMPORT(CCommandMgr_Process, ProcessCmd, bool(uint32_t,uint32_t,uint32_t,uint32_t,uint32_t));
 
 
@@ -255,7 +257,6 @@ namespace Condemned2 {
             return 0;
 
         const size_t length = std::strlen(str) + 1;
-
         if (length > guestCapacity - scratchOffset)
             return 0;
 
@@ -301,23 +302,7 @@ namespace Condemned2 {
         __imp__UpdateFrame(ctx, base);
     }
 
-    //Console Vars
-    REX_HOOK_RAW(SetConfigCvar){
-        //REXLOG_INFO("[condemned2_hooks][SetConfigCvar] ({:#x}) {}", ctx.r5.u32, ctx.f1.f64 );
-        __imp__SetConfigCvar(ctx, base);
-    }
-
-    REX_HOOK_RAW(GetBoolCvar){
-        //REXLOG_INFO("[condemned2_hooks][SetIntCvar] ({:#x}) {}", ctx.r3.u32, ctx.r4.u32  );
-        __imp__GetBoolCvar(ctx, base);
-    }
-
-    REX_HOOK_RAW(SetIntCvar){
-        //REXLOG_INFO("[condemned2_hooks][SetIntCvar] ({:#x}) {}", ctx.r3.u32, ctx.r4.u32 );
-        __imp__SetIntCvar(ctx, base);
-    }
-
-    //Sanitizes booleans
+    //Sanitizes rex cvar booleans as doubles.
     std::string Condemned2Hook::GetSafeString(std::string_view new_value){
         std::string temp = std::string(new_value);
         std::transform(temp.begin(), temp.end(), temp.begin(), ::tolower);
@@ -325,4 +310,35 @@ namespace Condemned2 {
         else if (temp == "false" || temp == "no") temp = "0.0";
         return temp;
     }
+
+    //Resources verified as bundles are parsed and loaded.
+    REX_HOOK_RAW(Game_LoadExtResource){
+        uint32_t self = ctx.r3.u32, name_g = ctx.r4.u32; 
+        const char* p = g_condemned2_hooks->GetMemory()->TranslateVirtual<const char*>(name_g); 
+        REXLOG_INFO("[Game_LoadExtResource] this={} lr={:#x} name_address={} name={}", self, ctx.lr, name_g, p);
+        __imp__Game_LoadExtResource(ctx, base);
+    }
+
+    //Monitor models that objects initialize with!
+    REX_HOOK_RAW(LoadModelFile) {
+        uint32_t name_g = ctx.r4.u32;
+        const char* name_h = g_condemned2_hooks->GetMemory()->TranslateVirtual<const char*>(name_g);
+        REXLOG_INFO("[condemned2_hooks][LoadModelFile] this={:#x} name_address={:#x} name={}", ctx.r3.u32, name_g, name_h);
+        __imp__LoadModelFile(ctx, base);
+    }
+
+    //Console Vars
+    /*REX_HOOK_RAW(SetConfigCvar){
+        REXLOG_INFO("[condemned2_hooks][SetConfigCvar] ({:#x}) {}", ctx.r5.u32, ctx.f1.f64 );
+        __imp__SetConfigCvar(ctx, base);
+    }
+    REX_HOOK_RAW(GetBoolCvar){
+        REXLOG_INFO("[condemned2_hooks][SetIntCvar] ({:#x}) {}", ctx.r3.u32, ctx.r4.u32  );
+        __imp__GetBoolCvar(ctx, base);
+    }
+    REX_HOOK_RAW(SetIntCvar){
+        REXLOG_INFO("[condemned2_hooks][SetIntCvar] ({:#x}) {}", ctx.r3.u32, ctx.r4.u32 );
+        __imp__SetIntCvar(ctx, base);
+    }*/
 }
+

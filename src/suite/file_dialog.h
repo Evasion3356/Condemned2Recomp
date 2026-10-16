@@ -18,11 +18,15 @@ namespace RexGlueSuite {
     class FileDialog {
         public:
             #if REX_PLATFORM_WIN32
-            static std::wstring toWide(const std::string& s) {
-                int len = MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, nullptr, 0);
-                std::wstring ws(len, 0);
-                MultiByteToWideChar(CP_UTF8, 0, s.c_str(), -1, ws.data(), len);
-                return ws;
+            static std::wstring ToWide(const std::string& s) {
+                if (s.empty()) return {};
+
+                int len = MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,s.data(), static_cast<int>(s.size()), nullptr, 0);
+                if (len <= 0) return {};
+
+                std::wstring result(len, L'\0');
+                if (MultiByteToWideChar(CP_UTF8, MB_ERR_INVALID_CHARS,s.data(), static_cast<int>(s.size()), result.data(), len) <= 0) return {};
+                return result;
             }
             #endif
 
@@ -95,7 +99,7 @@ namespace RexGlueSuite {
                     pfd->SetOptions(options | FOS_PICKFOLDERS | FOS_FORCEFILESYSTEM);
 
                     IShellItem* psiFolder = nullptr;
-                    std::wstring wInitial = toWide(initialPath);
+                    std::wstring wInitial = ToWide(initialPath);
                     if (SUCCEEDED(SHCreateItemFromParsingName(wInitial.c_str(), nullptr, IID_PPV_ARGS(&psiFolder)))) {
                         pfd->SetFolder(psiFolder);
                         psiFolder->Release();
@@ -136,7 +140,7 @@ namespace RexGlueSuite {
                     GtkWidget *dialog;
                     GtkFileChooser *chooser;
                     dialog = gtk_file_chooser_dialog_new(
-                        "Select Assets Folder", nullptr,
+                        "Select Folder", nullptr,
                         GTK_FILE_CHOOSER_ACTION_SELECT_FOLDER,
                         "_Cancel", GTK_RESPONSE_CANCEL,
                         "_Select", GTK_RESPONSE_ACCEPT,

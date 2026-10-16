@@ -92,7 +92,10 @@
 0x82302DB0 = {name="IsMeleeWeapon"} # Checks if the player has a melee weapon
 0x824384F0 = {name="BodyCapFunction"} # Body capsule physics
 0x826A5508 = {name="OnAttackEffect"} # Seems to be involved in whether there's gore or just a decal.
-0x82325C08 = {name="Game_BundleLoad"} # Loads various assets
+0x82325C08 = {name="Game_BundleLoad"} # Loads a specific bndl!
+0x821AE858 = {name="Game_LoadExtResource"}
+0x8217FB08 = {name="ResourceLoader"} # Loads resources, such as mdl!!!
+0x821F7E98 = {name="LoadModelFile"} # Loads resources, such as mdl!!!
 
 # Misc
 0x82561760 = {name="Math_ApplyLinearCurve"} # This has various applications, such as input sensitivity and various sfx settings.

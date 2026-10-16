@@ -70,9 +70,50 @@ namespace RexGlueSuite {
         static const size_t MAGIC_LEN = 20;
         static const size_t SECTOR_SIZE = 2048;
         static const size_t SCAN_SECTOR_SIZE = 250000;
-        static const size_t BUFFER_SIZE = 4 * 1024 * 1024;
+        static constexpr size_t CHUNK_SIZE = 1024 * 1024;
+        static const size_t BUFFER_SIZE = 4 * CHUNK_SIZE;
         static constexpr size_t MAX_OFFSETS = 500000; 
         static constexpr size_t MAX_DIRECTORIES = 50000;
+
+        ////Why pad the Arch02 files?
+        //When extracting *.Arch02 files, files at the end might fail to extract because they have to be a certain size.
+        //This fluffs them just enough for those files to safely decompress and extract. 
+        //This was tested through multiple extractors and formats, including XISO.
+        //It's always the same, Layer01.Arch02 is 5 bytes short, while Layer02.Arch02 is 7 bytes short.
+        ////Does this affect the game? It will if you intend to use them outside of the Arch02 archive files.
+        static void PadFileWithZeros(const std::filesystem::path& path, uint64_t bytesToAppend, std::function<void(std::string err)> on_error)
+        {
+            if (bytesToAppend == 0) return;
+
+            std::string filename = path.filename().string();
+            if(filename != "Layer01.Arch02" && filename != "Layer02.Arch02")
+              return;
+
+            std::fstream f(path, std::ios::binary | std::ios::in | std::ios::out | std::ios::ate);
+            if (!f) {
+              on_error(std::format("[rexglue_suite_xdvdfs] Failed to open file for padding: {}", path.string()));
+              return;
+            }
+
+            auto endPos = f.tellp();
+            if (endPos < 0) {
+              on_error(std::format("[rexglue_suite_xdvdfs] tellp() failed: {}", path.string()));
+              return;
+            }
+
+            std::vector<char> zeros(CHUNK_SIZE, 0);
+            uint64_t remaining = bytesToAppend;
+            while (remaining > 0) {
+                size_t n = (remaining > CHUNK_SIZE) ? CHUNK_SIZE : static_cast<size_t>(remaining);
+                f.write(zeros.data(), static_cast<std::streamsize>(n));
+                if (!f) {
+                  on_error(std::format("[rexglue_suite_xdvdfs] Write failed while padding: {}", path.string()));
+                  return;
+                }
+                remaining -= n;
+            }
+            f.flush();
+        }
 
         static uint64_t IsMagicNumber(uint64_t sector, char *sectorBuf, std::ifstream& f){
           f.seekg(sector * SECTOR_SIZE);
@@ -379,11 +420,12 @@ namespace RexGlueSuite {
           //Walks through all file requests and extracts them
           for(const auto& request : requests){
             std::error_code ec;
-            if (std::filesystem::is_regular_file(request.fullPath, ec) && std::filesystem::file_size(request.fullPath, ec) == request.size && !ec) {
+            if (std::filesystem::is_regular_file(request.fullPath, ec) && std::filesystem::file_size(request.fullPath, ec) >= request.size && !ec) {
               _extractedBytes += request.size;
               continue;
             }
             ExtractFile(request, f, _extractedBytes, _processInfo.on_log);
+            PadFileWithZeros(request.fullPath, 10, _processInfo.on_error);
           }
 
           uint64_t bytesDone = _extractedBytes.load();
