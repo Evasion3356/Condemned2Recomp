@@ -104,3 +104,8 @@
 0x823079C8 = {name="GetControlInput"} # GetControlInput(input, "ControlName"): value of a named control, 0 while the player has not unlocked it yet (e.g. "Holster")
 0x823B0BF8 = {name="GetZoomShake"} # GetZoomShake(weapon, mode, float* out): scope sway from the weapon's "ZoomShake" record, false when it has none
 0x82340BF8 = {name="UpdateCameraSway"} # UpdateCameraSway(camera): sine wave camera offset from the CameraSway* config values
+0x825407F8 = {name="FireWeapon"} # FireWeapon(weapon, fireInfo): server side shot, fireInfo+0 is the owner object, +56 the spread scale the client sent
+0x823B8298 = {name="PlayerFireShot"} # PlayerFireShot(clientWeapon): client side shot, rolls the spread, then sends direction + spread scale to the server
+0x826C0290 = {name="ApplyVectorSpread"} # ApplyVectorSpread(perturb, flag): random cone offset of a bullet vector from the weapon's "Perturb" record, skipped when perturb+24 (weapon) is 0
+0x826BFF48 = {name="ApplyProjectileSpread"} # ApplyProjectileSpread(perturb, dir, flag): same for projectiles, skipped when perturb+24 (weapon) is 0
+0x823DE5D8 = {name="GetStanceAccuracy"} # GetStanceAccuracy(PlayerAccuracy): per-stance spread from the weapon's "Accuracy" record, drives crosshair size and the spread scale

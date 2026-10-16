@@ -13,6 +13,10 @@
 // No Sway:         scoped weapons shake by their "ZoomShake" database record (scaled by IdleShakePct and the player's
 //                  SkillAimZoomSway). The shake function returns false when there is none, so the cheat just does that.
 //                  The camera also drifts side to side by a sine wave (CameraSwayXFreq/XSpeed/YFreq/YSpeed), which we skip.
+//                  Bullet spread is part of it. The client (PlayerFireShot) rolls a random cone offset from the weapon's "Perturb"
+//                  record and sends direction + spread scale; the server (FireWeapon) repeats the roll with the same seed. Both
+//                  call ApplyVectorSpread / ApplyProjectileSpread, which return early when the perturb object has no weapon, so
+//                  during the local player's shots we blank that. GetStanceAccuracy returns 0 to keep the crosshair tight.
 // Spawn weapon:    runs "msg Player (ACQUIREWEAPON <weapon>)" through the game's command manager, same as its scripts do,
 //                  then fills its ammo (see GiveAmmo).
 
@@ -36,7 +40,7 @@
 static const char* kNoWeapon = "None";
 REXCVAR_DEFINE_BOOL(condemned2_infinite_ammo, false, "Condemned 2/Cheats", "Infinite ammo");
 REXCVAR_DEFINE_BOOL(condemned2_unlock_holster, false, "Condemned 2/Cheats", "Unlock the holster in every mission");
-REXCVAR_DEFINE_BOOL(condemned2_no_sway, false, "Condemned 2/Cheats", "No Sway (steady scoped aim)");
+REXCVAR_DEFINE_BOOL(condemned2_no_sway, false, "Condemned 2/Cheats", "No Sway (steady scoped aim, no bullet spread)");
 REXCVAR_DEFINE_STRING(condemned2_spawn_firearm, "None", "Condemned 2/Cheats", "Give firearm (in-game)").allowed({
     "None",
     "Handgun_22", "Handgun_38", "Handgun_44", "Handgun_9mm",
@@ -61,6 +65,11 @@ REX_EXTERN(__imp__CanHolsterWeapon);
 REX_EXTERN(__imp__GetControlInput);
 REX_EXTERN(__imp__GetZoomShake);
 REX_EXTERN(__imp__UpdateCameraSway);
+REX_EXTERN(__imp__FireWeapon);
+REX_EXTERN(__imp__PlayerFireShot);
+REX_EXTERN(__imp__ApplyVectorSpread);
+REX_EXTERN(__imp__ApplyProjectileSpread);
+REX_EXTERN(__imp__GetStanceAccuracy);
 REX_EXTERN(__imp__ParseBundle);
 REX_EXTERN(__imp__FindResourceHandler);
 REX_EXTERN(__imp__Unlockables_Levels);
@@ -316,6 +325,12 @@ namespace Condemned2 {
         if (!record)
             return false;
         return CallGuest(ctx, base, load(load(database) + kDatabaseGetBool), database, record, name, 0, 0) & 0xFF;
+    }
+
+    bool Condemned2Cheats::IsPlayerOwner(uint32_t owner) {
+        uint32_t player = owner ? FindPlayer() : 0;
+        uint8_t* ptr = player ? Translate(player + 4) : nullptr;
+        return ptr && rex::memory::load_and_swap<uint32_t>(ptr) == owner; //CPlayerObj+4 is the owner object handed to the fire functions
     }
 
     bool Condemned2Cheats::IsHolsterControl(uint32_t nameAddress) {
@@ -826,6 +841,59 @@ namespace Condemned2 {
         if (REXCVAR_GET(condemned2_no_sway))
             return;
         __imp__UpdateCameraSway(ctx, base);
+    }
+
+    //No Sway: bullet spread
+    static thread_local bool t_noSpreadShot = false;
+
+    //Calls fn with the perturb object's weapon blanked, which makes the spread functions skip the random offset.
+    template <typename Fn>
+    static void WithoutSpread(PPCContext& __restrict ctx, uint8_t* base, Fn&& fn) {
+        if (!t_noSpreadShot || !ctx.r3.u32) {
+            fn();
+            return;
+        }
+        uint8_t* weapon = base + ctx.r3.u32 + 24;
+        uint32_t saved = rex::memory::load_and_swap<uint32_t>(weapon);
+        rex::memory::store_and_swap<uint32_t>(weapon, 0);
+        fn();
+        rex::memory::store_and_swap<uint32_t>(weapon, saved);
+    }
+
+    //int FireWeapon(weapon, fireInfo): the server's shot (also the client's own when it hosts)
+    REX_HOOK_RAW(FireWeapon) {
+        bool previous = t_noSpreadShot;
+        t_noSpreadShot = REXCVAR_GET(condemned2_no_sway) && g_condemned2_cheats
+            && g_condemned2_cheats->IsPlayerOwner(rex::memory::load_and_swap<uint32_t>(base + ctx.r4.u32));
+        __imp__FireWeapon(ctx, base);
+        t_noSpreadShot = previous;
+    }
+
+    //int PlayerFireShot(clientWeapon): the local player's shot as the client predicts it
+    REX_HOOK_RAW(PlayerFireShot) {
+        bool previous = t_noSpreadShot;
+        t_noSpreadShot = REXCVAR_GET(condemned2_no_sway);
+        __imp__PlayerFireShot(ctx, base);
+        t_noSpreadShot = previous;
+    }
+
+    //void ApplyVectorSpread(perturb, flag)
+    REX_HOOK_RAW(ApplyVectorSpread) {
+        WithoutSpread(ctx, base, [&] { __imp__ApplyVectorSpread(ctx, base); });
+    }
+
+    //float* ApplyProjectileSpread(perturb, direction, flag)
+    REX_HOOK_RAW(ApplyProjectileSpread) {
+        WithoutSpread(ctx, base, [&] { __imp__ApplyProjectileSpread(ctx, base); });
+    }
+
+    //double GetStanceAccuracy(playerAccuracy): the crosshair grows with this, so report a perfect stance
+    REX_HOOK_RAW(GetStanceAccuracy) {
+        if (REXCVAR_GET(condemned2_no_sway)) {
+            ctx.f1.f64 = 0.0;
+            return;
+        }
+        __imp__GetStanceAccuracy(ctx, base);
     }
 
     //int GetControlInput(input, const char* controlName)

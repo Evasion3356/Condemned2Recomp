@@ -51,6 +51,8 @@ namespace Condemned2 {
             bool IsHolsterControl(uint32_t nameAddress);
             //Called from the CanHolsterWeapon hook when the game refused to holster: true forces the holster.
             bool ShouldForceHolster(PPCContext& __restrict ctx, uint8_t* base, uint32_t weapon, double input);
+            //True if the shot's owner object (fireInfo+0) is the local player's, so No Sway leaves other shooters' spread alone.
+            bool IsPlayerOwner(uint32_t owner);
 
             //Debug/automation helpers (used by the debug server)
             using GameThreadTask = std::function<std::string(PPCContext&, uint8_t*)>;
