@@ -40,7 +40,7 @@ namespace Condemned2 {
             void OnPreSetup(rex::RuntimeConfig& config) override {
                 _hooks = new Condemned2::Condemned2Hook();
                 _graphics = new rex::graphics::condemned2graphics::Condemned2Graphics(_hooks);
-                _cheats = new Condemned2::Condemned2Cheats();
+                _cheats = new Condemned2::Condemned2Cheats(_hooks);
 
                 config.gpu_plugin = "xenos";
                 config.input_factory = REX_INPUT_BACKEND(rex::input::condemned2input::CreateInputSystem);
@@ -56,8 +56,11 @@ namespace Condemned2 {
             }
 
             void OnPostSetup() override{
-                _hooks->InitializeHookCallbacks(runtime());
+                _hooks->InitializeHooks(runtime());
+                _graphics->InitializeGraphics();
                 _cheats->Initialize(runtime());
+                _cheats->InitializeCheats();
+                _hooks->InitializeCallbacks();
             }
 
             void OnShutdown() override {

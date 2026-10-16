@@ -32,16 +32,19 @@
 0x824DA6B8 = {}
 0x82123768 = {}
 0x8220BAF0 = {}
+0x82694360 = {} # Multiplayer
 
 ########################
 # Condemned2 Functions #
 ########################
 # Console
+0x82123048 = {name="UpdateFrame"}
 0x826A7E90 = {name="SetFloatCVar"}
 0x826A7C60 = {name="GetFloatCVar"}
 0x826A7D78 = {name="SetIntCvar"}
 0x826A7AC0 = {name="GetBoolCvar"}
 0x82175C58 = {name="SetConfigCvar"}
+0x82505008 = {name="CCommandMgr_Process"}
 
 # Config/Init
 0x824262C8 = {name="Player_UserSettings"}
@@ -79,6 +82,10 @@
 0x82425158 = {name="AimingSensitivity"} # Aiming sensitivity setting
 0x8230A428 = {name="ProcessLookInput"}
 0x82306DE8 = {name="Camera_MouseLook"} # Restored native mouse look!
+
+#Unlockables and Cheats
+0x823077E0 = {name="Unlockables_Levels"}
+0x8230AC08 = {name="Unlockables_GunEfficiency"}
 
 # Gameplay
 0x823D56C0 = {name="TvAntennaAdjust"} # Used to toggle additive mouse input

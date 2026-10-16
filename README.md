@@ -84,3 +84,5 @@ cmake --build --preset linux-amd64-release
 * [RexGlue-SDK](https://github.com/rexglue/rexglue-sdk)
 * [Ghidra](https://github.com/NationalSecurityAgency/ghidra)
 * [RenderDoc](https://github.com/baldurk/renderdoc)
+* [PicoSHA2](https://github.com/okdshin/PicoSHA2)
+* [curl](https://github.com/curl/curl)

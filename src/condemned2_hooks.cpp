@@ -7,6 +7,8 @@
 #include <rex/rex_app.h>
 #include <rex/cvar.h>
 #include <rex/hook.h>
+#include <rex/ppc.h>
+#include <rex/input/flags.h>
 #include <rex/runtime.h>
 #include <rex/memory/utils.h>
 #include <rex/system/xmemory.h>
@@ -21,12 +23,24 @@
 #include <condemned2_hooks.h>
 
 //Rex Cvars
-//Input
 REXCVAR_DEFINE_DOUBLE(condemned2_input_sensitivity_max, 1.0, "Condemned 2/Input", "Mouse/Stick Sensitivity");
-//Experimental
 REXCVAR_DEFINE_DOUBLE(condemned2_update_rate, 60.0, "Condemned 2/Experimental", "Update Rate");
 
+REX_EXTERN(__imp__UpdateFrame);
+REX_EXTERN(__imp__GetFloatCVar);
+REX_EXTERN(__imp__SetConfigCvar);
+REX_EXTERN(__imp__GetBoolCvar);
+REX_EXTERN(__imp__SetIntCvar);
+REX_IMPORT(SetIntCvar, SendConsoleInt, u32(u32, u32));
+REX_IMPORT(GetFloatCVar, SendConsoleFloat, double(double, u32 ));
+REX_IMPORT(GetBoolCvar, SendConsoleBool, int(u32, int));
+REX_EXTERN(__imp__CCommandMgr_Process);
+REX_IMPORT(CCommandMgr_Process, ProcessCmd, bool(uint32_t,uint32_t,uint32_t,uint32_t,uint32_t));
+
+
 namespace Condemned2 {
+    namespace {constexpr uint32_t guestCapacity = 4096; constexpr uint32_t kCCommandMgr = 0x8294F74C;}
+
     Condemned2Hook* g_condemned2_hooks = nullptr;
     Condemned2Hook::Condemned2Hook() {
         REXLOG_INFO("[condemned2_hooks] Starting...");
@@ -34,7 +48,7 @@ namespace Condemned2 {
     }
     Condemned2Hook::~Condemned2Hook() = default;
 
-    void Condemned2Hook::InitializeHookCallbacks(rex::Runtime* runtime){
+    void Condemned2Hook::InitializeHooks(rex::Runtime* runtime){
         if (!runtime)
             return;
 
@@ -43,19 +57,20 @@ namespace Condemned2 {
             return;
 
         _runtime = runtime;
+        guestAddress = _memory->SystemHeapAlloc(guestCapacity);
+    }
 
+    void Condemned2Hook::InitializeCallbacks(){
         //One-time sets done at initialization
         for (HookCallback _cb : _initialSet) {
             SetMemoryFunc(_cb);
         }
-
         //Register callbacks
         RegisterCallbacks(_callBacks);
-        //RegisterCallbacks(_lookUpSet, false);
     }
 
     //Register callbacks
-    void Condemned2Hook::RegisterCallbacks(std::vector<HookCallback> _newCallBacks, bool registerChange){
+    void Condemned2Hook::RegisterCallbacks(std::vector<HookCallback> _newCallBacks){
         for (HookCallback &_cb : _newCallBacks) {
             //Initialize min and max
             if (std::get_if<double>(&_cb.defaultValue)) {
@@ -68,14 +83,13 @@ namespace Condemned2 {
                 if (std::get_if<int>(&_cb.minValue) == nullptr) _cb.minValue = std::numeric_limits<int>::lowest();  
                 if (std::get_if<int>(&_cb.maxValue) == nullptr) _cb.maxValue = std::numeric_limits<int>::max(); 
             }
-              
-            if(!registerChange)
-                continue;
 
             //Initialize callback
-            rex::cvar::RegisterChangeCallback(_cb.name, [this, _cb](std::string_view name, std::string_view new_value) {
-                SetMemoryFunc(_cb, GetSafeString(new_value));
-            });
+            if(!_cb.callBack){
+                _cb.callBack = [this, _cb](std::string_view name, std::string_view new_value) { SetMemoryFunc(_cb, GetSafeString(new_value)); };
+            }
+            rex::cvar::RegisterChangeCallback(_cb.name, _cb.callBack); 
+
             //Set default value so callback is triggered.
             std::string val = rex::cvar::GetFlagByName(_cb.name);
             if(!val.empty())
@@ -203,6 +217,104 @@ namespace Condemned2 {
                 REXLOG_INFO("[condemned2_hooks::ExecCallbackFunc] {}: {}", _cb.name, val );
             }
         }
+    }
+
+    //Console Commands
+    uint32_t Condemned2Hook::SendCommandCmd(const char* command, HookValue newValue){
+        return SendCommandCmd(AllocateHeapForString(command), newValue);
+    }
+
+    uint32_t Condemned2Hook::SendCommandCmd(uint32_t strAddress, HookValue newValue){
+        if (auto* defaultValue = std::get_if<double>(&newValue)) {
+            pendingConsoleCommands[strAddress] = *defaultValue;
+        }else if (auto* defaultValue = std::get_if<float>(&newValue)) {
+            pendingConsoleCommands[strAddress] = *defaultValue;
+        }else if (auto* defaultValue = std::get_if<int>(&newValue)) {
+            pendingConsoleCommands[strAddress] = *defaultValue;
+        }
+        return 0;
+    }
+
+    void Condemned2Hook::SendCommandCmd(CCommand newCmd){
+
+        //Retrieve CCommandMgr pointer
+        uint8_t* physicalAddress = _memory->TranslateVirtual<uint8_t*>(kCCommandMgr);
+        if(!physicalAddress)
+            return;
+
+        if(!VirtualAlloc(physicalAddress, 0x10000, MEM_COMMIT, PAGE_READWRITE))
+            return;
+
+        pendingCommands[newCmd.cmd] = newCmd;
+        pendingCommands[newCmd.cmd].mgr = rex::memory::load_and_swap<uint32_t>(physicalAddress);
+    }
+
+    //Allocation
+    uint32_t Condemned2Hook::AllocateHeapForString(const char* str) {
+        if (!str)
+            return 0;
+
+        const size_t length = std::strlen(str) + 1;
+
+        if (length > guestCapacity - scratchOffset)
+            return 0;
+
+        const uint32_t address = guestAddress + static_cast<uint32_t>(scratchOffset);
+        char* hostBuffer = _memory->TranslateVirtual<char*>(address);
+
+        if (!hostBuffer)
+            return 0;
+
+        std::memcpy(hostBuffer, str, length);
+        scratchOffset += length;
+
+        return address;
+    }
+
+    REX_HOOK_RAW(UpdateFrame){
+        rex::CallFrame frame{ctx};
+        auto& pendingCmds = g_condemned2_hooks->GetPendingConsoleCommands();
+        while( pendingCmds.size() > 0 ){
+            auto it = pendingCmds.begin();
+            uint32_t key = it->first;
+            const auto value = it->second;
+            SendConsoleInt(frame, base, key, value);
+            g_condemned2_hooks->RemovePendingConsoleCommand(key);
+        }
+        auto& pendingCCmds = g_condemned2_hooks->GetPendingCommands();
+        while (!pendingCCmds.empty()) {
+            auto it = pendingCCmds.begin();
+            const uint32_t key = it->first;
+            const auto cmd = it->second;
+            ProcessCmd(
+                frame,
+                base,
+                cmd.mgr,
+                cmd.cmd,
+                cmd.param_1,
+                cmd.param_2,
+                cmd.param_3
+            );
+            g_condemned2_hooks->RemovePendingCommand(key);
+        }
+        g_condemned2_hooks->ResetScratchpad(); //Reset scratch after commands are processed.
+        __imp__UpdateFrame(ctx, base);
+    }
+
+    //Console Vars
+    REX_HOOK_RAW(SetConfigCvar){
+        //REXLOG_INFO("[condemned2_hooks][SetConfigCvar] ({:#x}) {}", ctx.r5.u32, ctx.f1.f64 );
+        __imp__SetConfigCvar(ctx, base);
+    }
+
+    REX_HOOK_RAW(GetBoolCvar){
+        //REXLOG_INFO("[condemned2_hooks][SetIntCvar] ({:#x}) {}", ctx.r3.u32, ctx.r4.u32  );
+        __imp__GetBoolCvar(ctx, base);
+    }
+
+    REX_HOOK_RAW(SetIntCvar){
+        //REXLOG_INFO("[condemned2_hooks][SetIntCvar] ({:#x}) {}", ctx.r3.u32, ctx.r4.u32 );
+        __imp__SetIntCvar(ctx, base);
     }
 
     //Sanitizes booleans

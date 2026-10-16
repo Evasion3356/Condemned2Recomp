@@ -2,7 +2,7 @@
 //
 // Condemned 2 Cheats
 //
-// FPS Mode unlock, infinite ammo, holster unlock and weapon spawning. All of them are exposed
+// Unlockables, infinite ammo, holster unlock and weapon spawning. All of them are exposed
 // as cvars in the "Condemned 2/Cheats" category, so they show up in the F4 settings menu.
 
 #pragma once
@@ -23,20 +23,26 @@
 #include <memory>
 #include <vector>
 
+#include <condemned2_hooks.h>
+
 namespace Condemned2 {
     class Condemned2DebugServer;
 
     class Condemned2Cheats {
         public:
-            explicit Condemned2Cheats();
+            explicit Condemned2Cheats(Condemned2Hook* hook);
             ~Condemned2Cheats();
 
             //Called once the runtime (and its guest memory) exists.
             void Initialize(rex::Runtime* runtime);
 
-            //Called from the SetConfigCvar hook whenever the game registers a config cvar.
-            //namePtr is the guest address of the cvar's name, outPtr the guest address of the {handle, manager} pair.
-            void OnConfigCvarRegistered(uint32_t namePtr, uint32_t outPtr);
+            //Binds the unlockable / QoL / console cvars. Call after the hook's runtime is initialized.
+            void InitializeCheats();
+
+            bool HasAllLevelsUnlocked() const { return _hasAllLevelsUnlocked; }
+            void SetHasAllLevelsUnlocked(bool enable) { _hasAllLevelsUnlocked = enable; }
+            bool HasTopGunEfficiency() const { return _hasTopGunEfficiency; }
+            void SetHasTopGunEfficiency(bool enable) { _hasTopGunEfficiency = enable; }
 
             //Called from the game thread (ProcessLookInput hook), spawns whatever was queued from the UI.
             void ProcessPending(PPCContext& __restrict ctx, uint8_t* base);
@@ -68,7 +74,6 @@ namespace Condemned2 {
             template <typename Fn>
             void ForEachHeapChunk(Fn&& fn);
             void SetInfiniteAmmo(bool enabled);
-            void SetFPSModeUnlocked(bool enabled);
             void GiveWeapon(PPCContext& __restrict ctx, uint8_t* base, const std::string& weapon);
             bool SetReserve(PPCContext& __restrict ctx, uint8_t* base, const std::string& weapon, uint32_t* weaponIdOut = nullptr);
             void GiveAmmo(PPCContext& __restrict ctx, uint8_t* base, const std::string& weapon);
@@ -97,7 +102,9 @@ namespace Condemned2 {
             std::vector<HeldBundle> _held;     //Game thread only: bundles loaded for spawns, oldest first
             std::vector<PendingSpawn> _spawns; //Game thread only: weapons waiting for their bundle to load
 
-            uint32_t _fpsModeVarAddress = 0; //Guest address of FPSMode's float value, 0 until the game registers it.
+            Condemned2Hook* _hook = nullptr;
+            bool _hasAllLevelsUnlocked = false;
+            bool _hasTopGunEfficiency = false;
             uint32_t _scratchAddress = 0;    //Guest memory used to build the console command.
             bool _bResettingSpawn = false;
     };

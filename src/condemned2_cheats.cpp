@@ -2,8 +2,8 @@
 //
 // Condemned 2 Cheats
 //
-// FPS Mode unlock: the game registers a float config cvar named "FPSMode". When it's above zero the mission
-//                  select screen treats FPS Mode as unlocked for every mission (g_abMonolithMenuProfileMissionFPSUnlocked).
+// Unlockables:     FPS Mode, all levels, all upgrades and top gun accuracy (Unlockables_* hooks and the FPSMode console cvar).
+// Console:         condemned2_cmd / condemned2_msg expose the game's console variables and command manager.
 // Infinite ammo:   the game's own "InfiniteAmmo" cheat sets a global byte that the arsenal checks before
 //                  consuming ammo. We just flip that byte.
 // Holster:         the drop key sends a message with a "Holster" control byte. GetControlInput returns 0 for that control until
@@ -34,7 +34,6 @@
 
 //Rex Cvars
 static const char* kNoWeapon = "None";
-REXCVAR_DEFINE_BOOL(condemned2_unlock_fps_mode, false, "Condemned 2/Cheats", "Unlock FPS Mode for every mission");
 REXCVAR_DEFINE_BOOL(condemned2_infinite_ammo, false, "Condemned 2/Cheats", "Infinite ammo");
 REXCVAR_DEFINE_BOOL(condemned2_unlock_holster, false, "Condemned 2/Cheats", "Unlock the holster in every mission");
 REXCVAR_DEFINE_BOOL(condemned2_no_sway, false, "Condemned 2/Cheats", "No Sway (steady scoped aim)");
@@ -64,10 +63,22 @@ REX_EXTERN(__imp__GetZoomShake);
 REX_EXTERN(__imp__UpdateCameraSway);
 REX_EXTERN(__imp__ParseBundle);
 REX_EXTERN(__imp__FindResourceHandler);
+REX_EXTERN(__imp__Unlockables_Levels);
+REX_EXTERN(__imp__Unlockables_GunEfficiency);
+
+//Unlockables
+REXCVAR_DEFINE_BOOL(condemned2_cheat_fps_mode, false, "Condemned 2/Extras/Unlockables", "FPS Mode ( Must be enabled before entering menu!!! )");
+REXCVAR_DEFINE_BOOL(condemned2_cheat_unlock_all_levels, false, "Condemned 2/Extras/Unlockables", "Unlocks every level!");
+REXCVAR_DEFINE_BOOL(condemned2_cheat_top_gun_accuracy, false, "Condemned 2/Extras/Unlockables", "Gives player 100% gun efficiency!");
+//QoL
+REXCVAR_DEFINE_BOOL(condemned2_qol_skip_intro_movies, false, "Condemned 2/Extras/QoL Improvements", "Skips intro movies.");
+REXCVAR_DEFINE_BOOL(condemned2_qol_skip_ingame_movies, false, "Condemned 2/Extras/QoL Improvements", "Skips in-game movies.");
+//Console
+REXCVAR_DEFINE_STRING(condemned2_cmd, "", "Condemned 2/Extras/Console", "Runs console variables.");
+REXCVAR_DEFINE_STRING(condemned2_msg, "", "Condemned 2/Extras/Console", "Sends commands to managers.");
 
 namespace Condemned2 {
     //Guest addresses (Title Update executable)
-    static constexpr uint32_t kFPSModeName        = 0x820288A4; //"FPSMode"
     static constexpr uint32_t kInfiniteAmmoFlag   = 0x8293522C; //Read by the arsenal before consuming ammo
     static constexpr uint32_t kInfiniteAmmoCheat  = 0x828E5B6C; //Cheat state the cheat toggle reads back
     static constexpr uint32_t kCommandProcess     = 0x82505008; //bool CCommandMgr::Process(mgr, command, sender, sender, flag)
@@ -146,13 +157,10 @@ namespace Condemned2 {
 
     Condemned2Cheats* g_condemned2_cheats = nullptr;
 
-    Condemned2Cheats::Condemned2Cheats() {
+    Condemned2Cheats::Condemned2Cheats(Condemned2Hook* hook) : _hook(hook) {
         REXLOG_INFO("[condemned2_cheats] Starting...");
         g_condemned2_cheats = this;
 
-        rex::cvar::RegisterChangeCallback("condemned2_unlock_fps_mode", [this](std::string_view, std::string_view new_value) {
-            SetFPSModeUnlocked(Condemned2Hook::GetSafeString(new_value) == "1.0");
-        });
         rex::cvar::RegisterChangeCallback("condemned2_infinite_ammo", [this](std::string_view, std::string_view new_value) {
             SetInfiniteAmmo(Condemned2Hook::GetSafeString(new_value) == "1.0");
         });
@@ -224,25 +232,69 @@ namespace Condemned2 {
         REXLOG_INFO("[condemned2_cheats] Infinite ammo: {}", enabled);
     }
 
-    //FPS Mode
-    void Condemned2Cheats::SetFPSModeUnlocked(bool enabled) {
-        if (!_fpsModeVarAddress) //Not registered yet, OnConfigCvarRegistered applies it once the game creates the cvar.
-            return;
-        if (uint8_t* ptr = Translate(_fpsModeVarAddress))
-            Condemned2Hook::set_float(ptr, enabled ? 1.0f : 0.0f);
-        REXLOG_INFO("[condemned2_cheats] FPS Mode unlocked: {}", enabled);
+    //Unlockables, QoL and console. The console cvars are run by the UpdateFrame hook.
+    void Condemned2Cheats::InitializeCheats() {
+        auto toNumber = [](std::string_view value) { return std::stod(Condemned2Hook::GetSafeString(value)); };
+        auto bindConsoleCvar = [&](const char* cvar, const char* consoleName) {
+            rex::cvar::RegisterChangeCallback(cvar, [this, toNumber, consoleName](std::string_view, std::string_view new_value) {
+                _hook->SendCommandCmd(consoleName, toNumber(new_value));
+            });
+            _hook->SendCommandCmd(consoleName, toNumber(rex::cvar::GetFlagByName(cvar)));
+        };
+
+        rex::cvar::RegisterChangeCallback("condemned2_cheat_unlock_all_levels", [this](std::string_view, std::string_view new_value) {
+            SetHasAllLevelsUnlocked(new_value == "true");
+        });
+        SetHasAllLevelsUnlocked(REXCVAR_GET(condemned2_cheat_unlock_all_levels));
+
+        rex::cvar::RegisterChangeCallback("condemned2_cheat_top_gun_accuracy", [this](std::string_view, std::string_view new_value) {
+            SetHasTopGunEfficiency(new_value == "true");
+        });
+        SetHasTopGunEfficiency(REXCVAR_GET(condemned2_cheat_top_gun_accuracy));
+
+        bindConsoleCvar("condemned2_cheat_fps_mode", "FPSMode");
+        bindConsoleCvar("condemned2_qol_skip_intro_movies", "SkipSplashScreens");
+        bindConsoleCvar("condemned2_qol_skip_ingame_movies", "SkipIngameMovies");
+
+        rex::cvar::RegisterChangeCallback("condemned2_cmd", [this](std::string_view, std::string_view new_value) {
+            if (new_value.empty())
+                return;
+            std::string cmdString(new_value);
+            size_t pos = cmdString.find(' ');
+            if (pos == std::string::npos) {
+                REXLOG_INFO("[condemned2_cheats][condemned2_cmd] Invalid Command! {}", cmdString);
+                return;
+            }
+            try {
+                _hook->SendCommandCmd(cmdString.substr(0, pos).c_str(), std::stod(cmdString.substr(pos + 1)));
+            } catch (const std::exception&) {
+                REXLOG_INFO("[condemned2_cheats][condemned2_cmd] Invalid Value! {}", cmdString);
+            }
+            REXLOG_INFO("[condemned2_cheats][condemned2_cmd] {}", cmdString);
+            rex::cvar::SetFlagByName("condemned2_cmd", "");
+        });
+
+        rex::cvar::RegisterChangeCallback("condemned2_msg", [this](std::string_view, std::string_view new_value) {
+            if (new_value.empty())
+                return;
+            _hook->SendCommandCmd({_hook->AllocateHeapForString(std::format("msg {}", std::string(new_value)).c_str()), 0, 0, 0});
+            REXLOG_INFO("[condemned2_cheats][condemned2_msg] {}", std::string(new_value));
+            rex::cvar::SetFlagByName("condemned2_msg", "");
+        });
     }
 
-    void Condemned2Cheats::OnConfigCvarRegistered(uint32_t namePtr, uint32_t outPtr) {
-        if (namePtr != kFPSModeName || !outPtr)
+    REX_HOOK_RAW(Unlockables_Levels) {
+        if (g_condemned2_cheats && g_condemned2_cheats->HasAllLevelsUnlocked())
             return;
-        uint8_t* out = Translate(outPtr);
-        if (!out)
+        __imp__Unlockables_Levels(ctx, base);
+    }
+
+    REX_HOOK_RAW(Unlockables_GunEfficiency) {
+        if (g_condemned2_cheats && g_condemned2_cheats->HasTopGunEfficiency()) {
+            ctx.f1.f32 = 100.0f;
             return;
-        //The cvar handle is the address of the float value, see the game's GetFloat.
-        _fpsModeVarAddress = rex::memory::load_and_swap<uint32_t>(out);
-        REXLOG_INFO("[condemned2_cheats] FPSMode cvar registered at {:#x}", _fpsModeVarAddress);
-        SetFPSModeUnlocked(REXCVAR_GET(condemned2_unlock_fps_mode));
+        }
+        __imp__Unlockables_GunEfficiency(ctx, base);
     }
 
     //Holster
