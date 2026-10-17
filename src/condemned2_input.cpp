@@ -347,6 +347,7 @@ namespace rex::input::condemned2input {
       NativeKeyPress(0xa7);
       NativeKeyPress(0xb7); // Used for dialogs in fight club
       NativeKeyPress(0xba); // Close tutorial dialogs
+      NativeKeyPress(0x5d); // Choose investigation choice
     }
     if(Pressed(activeBinds["menu_go_back"])){ //buttons |= X_INPUT_GAMEPAD_B;
       NativeKeyPress(0x88);
@@ -361,7 +362,6 @@ namespace rex::input::condemned2input {
     }
     if(Pressed(activeBinds["condemned2_input_use"])){ //buttons |= X_INPUT_GAMEPAD_A;
       NativeKeyPress(0x57);
-      //NativeKeyPress(0x5d);
     }
     if(Pressed(activeBinds["condemned2_input_flashlight"])){ //buttons |= X_INPUT_GAMEPAD_B;
       NativeKeyPress(0x72);
