@@ -40,6 +40,7 @@ REXCVAR_DEFINE_STRING(condemned2_input_kick, "Space", "Condemned 2/Input/Keyboar
 REXCVAR_DEFINE_STRING(condemned2_input_taser, "T", "Condemned 2/Input/Keyboard", "Taser");
 REXCVAR_DEFINE_STRING(condemned2_input_throw, "G", "Condemned 2/Input/Keyboard", "Throw Item/Weapon");
 REXCVAR_DEFINE_STRING(condemned2_input_drop, "B", "Condemned 2/Input/Keyboard", "Drop Item/Weapon");
+REXCVAR_DEFINE_STRING(condemned2_input_combo_attacks, "Q", "Condemned 2/Input/Keyboard", "Combo Attacks");
 
 REXCVAR_DEFINE_STRING(condemned2_input_forensics, "R", "Condemned 2/Input/Keyboard", "Investigate/Use Forensic Tools");
 REXCVAR_DEFINE_STRING(condemned2_input_tool_uv, "1", "Condemned 2/Input/Keyboard", "UV Light");
@@ -331,10 +332,10 @@ namespace rex::input::condemned2input {
     // Native PC Controls
     // UI Controls
     // Navigation
-    if((!IsDown(activeBinds["menu_nav_up"]) && activeBinds["menu_nav_up"].prev) || wheelY == 0.0f ){
+    if((!IsDown(activeBinds["menu_nav_up"]) || wheelY == 0.0f ) && activeBinds["menu_nav_up"].prev ){
       NativeKeyPress(0x82, true);
     }
-    if((!IsDown(activeBinds["menu_nav_down"]) && activeBinds["menu_nav_down"].prev) || wheelY == 0.0f ){
+    if((!IsDown(activeBinds["menu_nav_down"]) || wheelY == 0.0f ) && activeBinds["menu_nav_down"].prev ){
       NativeKeyPress(0x83, true);
     }
     if((!IsDown(activeBinds["menu_nav_left"]) && activeBinds["menu_nav_left"].prev) ){
@@ -417,6 +418,10 @@ namespace rex::input::condemned2input {
     }
     if(Pressed(activeBinds["condemned2_input_tool_take_picture"])){
       NativeKeyPress(0xb9);
+    }
+    if(IsDown(activeBinds["condemned2_input_combo_attacks"])){
+      NativeKeyPress(0x42);
+      NativeKeyPress(0xa8);
     }
     if(Pressed(activeBinds["condemned2_input_objectives"])){ //buttons |= X_INPUT_GAMEPAD_BACK;
       NativeKeyPress(0x4f);
