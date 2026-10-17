@@ -23,7 +23,6 @@
 REX_EXTERN(__imp__Unlockables_Levels);
 REX_EXTERN(__imp__Unlockables_Upgrades);
 REX_EXTERN(__imp__GunAccuracyMultiplier);
-REX_EXTERN(__imp__ProjectileAccuracyMultiplier);
 REX_EXTERN(__imp__RandomAccuracyKnockoff);
 
 //Cheats
@@ -152,14 +151,6 @@ namespace Condemned2 {
             return;
         }
         __imp__GunAccuracyMultiplier(ctx, base);
-    }
-
-    REX_HOOK_RAW(ProjectileAccuracyMultiplier) {
-        if( g_condemned2_cheats->HasTopGunEfficiency() ){
-            ctx.f1.f32 = 0.0f;
-            return;
-        }
-        __imp__ProjectileAccuracyMultiplier(ctx, base);
     }
 
     REX_HOOK_RAW(RandomAccuracyKnockoff) {

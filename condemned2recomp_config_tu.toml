@@ -85,7 +85,6 @@
 0x823077E0 = {name="Unlockables_Levels"}
 0x823079C8 = {name="Unlockables_Upgrades"}
 0x823DE5D8 = {name="GunAccuracyMultiplier"}
-0x826BFF48 = {name="ProjectileAccuracyMultiplier"}
 0x826C0290 = {name="RandomAccuracyKnockoff"}
 
 # Gameplay
