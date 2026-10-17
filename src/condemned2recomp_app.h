@@ -78,7 +78,7 @@ namespace Condemned2 {
             bool RequiresUpdate( nlohmann::json parsedJson ){
                 //Get the latest version, compare to saved cvar of it!
                 std::string currentVersion = rex::cvar::GetFlagByName("condemned2_app_version");
-                std::string latestVersion = parsedJson.value("tag_name", "unknown");
+                std::string latestVersion = RexGlueSuite::CurlGetter::JsonStringOr(parsedJson, "tag_name", "");
                 if(currentVersion != latestVersion && latestVersion != "unknown"){
                     REXLOG_INFO("[Condemned2recompApp] Old version: {} | New version found: {}", currentVersion, latestVersion);
                     return true;
@@ -92,8 +92,9 @@ namespace Condemned2 {
 
                 //Pass null if not installed, otherwise pass the entire get.
                 bool requiresLauncher = !IsInstalled();
+                std::string hasAutoUpdate = rex::cvar::GetFlagByName("condemned2_auto_updater");
                 nlohmann::json parsedJson = nlohmann::json(nullptr);
-                if(!requiresLauncher){
+                if(!requiresLauncher && hasAutoUpdate == "true"){
                     std::string rawJson = RexGlueSuite::CurlGetter::GetJson("https://api.github.com/repos/psxrestore/condemned2recomp/releases/latest");
                     parsedJson = nlohmann::json::parse(rawJson);
                     requiresLauncher = RequiresUpdate(parsedJson);

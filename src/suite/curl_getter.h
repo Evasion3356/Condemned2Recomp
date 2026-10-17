@@ -15,6 +15,17 @@
 namespace RexGlueSuite {
     class CurlGetter {
       public:
+        static std::string JsonStringOr(const nlohmann::json& object,const char* key,const char* fallback) {
+            if (!object.is_object()) {
+                return fallback;
+            }
+            const auto it = object.find(key);
+            if (it == object.end() || !it->is_string()) {
+                return fallback;
+            }
+            return it->get<std::string>();
+        }
+
         static size_t write_to_string(void* ptr, size_t size, size_t nmemb, void* userdata)
         {
             auto* out = static_cast<std::string*>(userdata);

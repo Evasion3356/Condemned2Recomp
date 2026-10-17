@@ -32,6 +32,8 @@
 #include <suite/process_runner.h>
 #include <ui/condemned2_widgets.h>
 
+REXCVAR_DEFINE_BOOL(condemned2_auto_updater, true,"Condemned 2/Launcher", "Toggles auto-updates for Condemned2Recomp");
+
 REXCVAR_DEFINE_STRING(condemned2_tu_patch_dl_link, "https://xboxunity.net/Resources/Lib/TitleUpdate.php?tuid=21001", "Condemned 2", "Title Update Download Link").lifecycle(rex::cvar::Lifecycle::kInitOnly);
 REXCVAR_DEFINE_STRING(condemned2_tu_patch_filename, "TU_19KA1VF_0000004000000.00000000000G1", "Condemned 2", "Title Update Filename").lifecycle(rex::cvar::Lifecycle::kInitOnly);
 REXCVAR_DEFINE_STRING(condemned2_tu_patch_hash, "1ce63d845307c18873b737c4cb6d0ed0622e994aaa6d24ab14654530061e12be", "Condemned 2", "Title Update Hash").lifecycle(rex::cvar::Lifecycle::kInitOnly);
@@ -317,8 +319,8 @@ namespace Condemned2 {
         stateTable[LauncherState::BMSFinish] = BMSFinish;
 
         //Game Update (optional)
-        std::string latestVersion = _currentJson.value("tag_name", "unknown");
-        std::string latestBody = _currentJson.value("body", "unknown");
+        std::string latestVersion = RexGlueSuite::CurlGetter::JsonStringOr(_currentJson, "tag_name", "unknown");
+        std::string latestBody = RexGlueSuite::CurlGetter::JsonStringOr(_currentJson, "body", "unknown");
         LauncherDialog UpdateMain;
         UpdateMain.windowSize = ImVec2(1024, 768);
         UpdateMain.nextState = LauncherState::UpdateDownload;
@@ -341,10 +343,10 @@ namespace Condemned2 {
         UpdateDownload.onStart = [&](){
           const auto& assets = _currentJson["assets"];
           const auto& asset = assets[0];
-          std::string digest = asset.value("digest", "");
+          std::string digest = RexGlueSuite::CurlGetter::JsonStringOr(asset, "digest", "");
           auto pos = digest.find(':');
           std::string hash = (pos == std::string::npos) ? digest : digest.substr(pos + 1);
-          std::string url  = asset.value("browser_download_url", "");
+          std::string url  = RexGlueSuite::CurlGetter::JsonStringOr(asset, "browser_download_url", "");
           _workPath = _paths.config_path.parent_path() / "pendingUpdate.zip";
           REXLOG_INFO("[GameLauncherDialog] {} {}", hash, url);
           workerThread = RexGlueSuite::Downloader::NewThread(url, hash, _copiedBytes, _fullSize, {
@@ -640,9 +642,9 @@ namespace Condemned2 {
         //Menu Commands
         if( newStep.hasButtons && !newStep.hasProgressBar){
           bool useSkip = newStep.skipState != LauncherState::None;
-          int btnWidth = ImGui::GetContentRegionAvail().x * 0.499f;
+          int btnWidth = ImGui::GetContentRegionAvail().x * 0.496f;
           if ( useSkip ){
-            btnWidth = ImGui::GetContentRegionAvail().x * 0.329f;
+            btnWidth = ImGui::GetContentRegionAvail().x * 0.328f;
           }
           if (UIWidgets::AddButton(newStep.nextBtnLabel.c_str(), _loadedFonts["ZTNature-Black"], ImVec2(btnWidth, 64))) {
             pendingState = newStep.nextState;

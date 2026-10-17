@@ -73,14 +73,13 @@ REX_EXTERN(__imp__GetStanceAccuracy);
 REX_EXTERN(__imp__ParseBundle);
 REX_EXTERN(__imp__FindResourceHandler);
 REX_EXTERN(__imp__Unlockables_Levels);
-REX_EXTERN(__imp__Unlockables_GunEfficiency);
 
 //Unlockables
 REXCVAR_DEFINE_BOOL(condemned2_cheat_fps_mode, false, "Condemned 2/Extras/Unlockables", "FPS Mode ( Must be enabled before entering menu!!! )");
 REXCVAR_DEFINE_BOOL(condemned2_cheat_unlock_all_levels, false, "Condemned 2/Extras/Unlockables", "Unlocks every level!");
 REXCVAR_DEFINE_BOOL(condemned2_cheat_top_gun_accuracy, false, "Condemned 2/Extras/Unlockables", "Gives player 100% gun efficiency!");
 //QoL
-REXCVAR_DEFINE_BOOL(condemned2_qol_skip_intro_movies, false, "Condemned 2/Extras/QoL Improvements", "Skips intro movies.");
+//REXCVAR_DEFINE_BOOL(condemned2_qol_skip_intro_movies, false, "Condemned 2/Extras/QoL Improvements", "Skips intro movies.");
 REXCVAR_DEFINE_BOOL(condemned2_qol_skip_ingame_movies, false, "Condemned 2/Extras/QoL Improvements", "Skips in-game movies.");
 //Console
 REXCVAR_DEFINE_STRING(condemned2_cmd, "", "Condemned 2/Extras/Console", "Runs console variables.");
@@ -262,7 +261,8 @@ namespace Condemned2 {
         SetHasTopGunEfficiency(REXCVAR_GET(condemned2_cheat_top_gun_accuracy));
 
         bindConsoleCvar("condemned2_cheat_fps_mode", "FPSMode");
-        bindConsoleCvar("condemned2_qol_skip_intro_movies", "SkipSplashScreens");
+        //Skipping the intro movies breaks the start screen
+        //bindConsoleCvar("condemned2_qol_skip_intro_movies", "SkipSplashScreens");
         bindConsoleCvar("condemned2_qol_skip_ingame_movies", "SkipIngameMovies");
 
         rex::cvar::RegisterChangeCallback("condemned2_cmd", [this](std::string_view, std::string_view new_value) {
@@ -296,14 +296,6 @@ namespace Condemned2 {
         if (g_condemned2_cheats && g_condemned2_cheats->HasAllLevelsUnlocked())
             return;
         __imp__Unlockables_Levels(ctx, base);
-    }
-
-    REX_HOOK_RAW(Unlockables_GunEfficiency) {
-        if (g_condemned2_cheats && g_condemned2_cheats->HasTopGunEfficiency()) {
-            ctx.f1.f32 = 100.0f;
-            return;
-        }
-        __imp__Unlockables_GunEfficiency(ctx, base);
     }
 
     //Holster
@@ -843,7 +835,11 @@ namespace Condemned2 {
         __imp__UpdateCameraSway(ctx, base);
     }
 
-    //No Sway: bullet spread
+    //No Sway: bullet spread. Top Gun Accuracy uses the same hooks.
+    static bool NoSpreadActive() {
+        return REXCVAR_GET(condemned2_no_sway) || (g_condemned2_cheats && g_condemned2_cheats->HasTopGunEfficiency());
+    }
+
     static thread_local bool t_noSpreadShot = false;
 
     //Calls fn with the perturb object's weapon blanked, which makes the spread functions skip the random offset.
@@ -863,7 +859,7 @@ namespace Condemned2 {
     //int FireWeapon(weapon, fireInfo): the server's shot (also the client's own when it hosts)
     REX_HOOK_RAW(FireWeapon) {
         bool previous = t_noSpreadShot;
-        t_noSpreadShot = REXCVAR_GET(condemned2_no_sway) && g_condemned2_cheats
+        t_noSpreadShot = NoSpreadActive() && g_condemned2_cheats
             && g_condemned2_cheats->IsPlayerOwner(rex::memory::load_and_swap<uint32_t>(base + ctx.r4.u32));
         __imp__FireWeapon(ctx, base);
         t_noSpreadShot = previous;
@@ -872,7 +868,7 @@ namespace Condemned2 {
     //int PlayerFireShot(clientWeapon): the local player's shot as the client predicts it
     REX_HOOK_RAW(PlayerFireShot) {
         bool previous = t_noSpreadShot;
-        t_noSpreadShot = REXCVAR_GET(condemned2_no_sway);
+        t_noSpreadShot = NoSpreadActive();
         __imp__PlayerFireShot(ctx, base);
         t_noSpreadShot = previous;
     }
@@ -889,7 +885,7 @@ namespace Condemned2 {
 
     //double GetStanceAccuracy(playerAccuracy): the crosshair grows with this, so report a perfect stance
     REX_HOOK_RAW(GetStanceAccuracy) {
-        if (REXCVAR_GET(condemned2_no_sway)) {
+        if (NoSpreadActive()) {
             ctx.f1.f64 = 0.0;
             return;
         }

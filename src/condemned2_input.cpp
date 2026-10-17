@@ -36,6 +36,7 @@ REXCVAR_DEFINE_STRING(condemned2_input_walk, "Left Alt, Right Alt", "Condemned 2
 REXCVAR_DEFINE_STRING(condemned2_input_primary_fire, "Mouse1", "Condemned 2/Input/Keyboard", "Swing Left/Primary Fire");
 REXCVAR_DEFINE_STRING(condemned2_input_secondary_fire, "Mouse2", "Condemned 2/Input/Keyboard", "Swing Right/Secondary Fire");
 REXCVAR_DEFINE_STRING(condemned2_input_block_alt, "Mouse3", "Condemned 2/Input/Keyboard", "Block (alt)");
+REXCVAR_DEFINE_STRING(condemned2_input_hook_attacks, "Q", "Condemned 2/Input/Keyboard", "Hook Attacks");
 REXCVAR_DEFINE_STRING(condemned2_input_kick, "Space", "Condemned 2/Input/Keyboard", "Kick");
 
 REXCVAR_DEFINE_STRING(condemned2_input_taser, "T", "Condemned 2/Input/Keyboard", "Taser");
@@ -47,6 +48,8 @@ REXCVAR_DEFINE_STRING(condemned2_input_tool_uv, "1", "Condemned 2/Input/Keyboard
 REXCVAR_DEFINE_STRING(condemned2_input_tool_camera, "2", "Condemned 2/Input/Keyboard", "Camera");
 REXCVAR_DEFINE_STRING(condemned2_input_tool_spectrometer, "3", "Condemned 2/Input/Keyboard", "Spectrometer");
 REXCVAR_DEFINE_STRING(condemned2_input_tool_gps, "4", "Condemned 2/Input/Keyboard", "GPS");
+REXCVAR_DEFINE_STRING(condemned2_input_tool_take_picture, "Mouse1, E, Enter", "Condemned 2/Input/Keyboard", "Shutter button for the camera.");
+REXCVAR_DEFINE_STRING(condemned2_input_zoom, "Mouse2, V", "Condemned 2/Input/Keyboard", "Camera zooms in, used for investigations and spectating");
 
 REXCVAR_DEFINE_STRING(condemned2_input_flashlight, "F", "Condemned 2/Input/Keyboard", "Flashlight");
 REXCVAR_DEFINE_STRING(condemned2_input_use, "E", "Condemned 2/Input/Keyboard", "Use");
@@ -336,6 +339,7 @@ namespace rex::input::condemned2input {
       NativeKeyPress(Action::DialogConfirmA);
       //In-game menu confirm
       NativeKeyPress(Action::Use);
+      NativeKeyPress(Action::MenuUse); // Choose investigation choice
       NativeKeyPress(Action::InGameConfirm);
       NativeKeyPress(Action::DialogConfirmB); // Used for dialogs in fight club
       NativeKeyPress(Action::DialogClose); // Close tutorial dialogs
@@ -355,6 +359,9 @@ namespace rex::input::condemned2input {
       NativeKeyPress(Action::MenuBack);
       NativeKeyPress(Action::DialogClose); // Close tutorial dialogs
       NativeKeyPress(Action::WorldUiEscape); // Escape in in-world terminals
+      if (IsActionEnabled(Action::CancelTask)) {
+        NativeKeyPress(Action::CancelTask); // Cancel investigation
+      }
     }
 
     //Player Input
@@ -383,6 +390,16 @@ namespace rex::input::condemned2input {
     }
     if(Pressed(activeBinds["condemned2_input_taser"])){ //buttons |= X_INPUT_GAMEPAD_DPAD_UP
       NativeKeyPress(Action::Taser);
+    }
+    if(Pressed(activeBinds["condemned2_input_hook_attacks"])){
+      NativeKeyPress(Action::BlockHold);
+      NativeKeyPress(Action::MenuLsClick);
+    }
+    if(Pressed(activeBinds["condemned2_input_tool_take_picture"])){
+      NativeKeyPress(Action::CameraShutter);
+    }
+    if(IsDown(activeBinds["condemned2_input_zoom"])){
+      NativeKeyPress(Action::MenuRtAlt);
     }
     if(Pressed(activeBinds["condemned2_input_objectives"])){ //buttons |= X_INPUT_GAMEPAD_BACK;
       NativeKeyPress(Action::ObjectivesB);
@@ -713,9 +730,9 @@ namespace rex::input::condemned2input {
     //Firearms
     MouseBind mouseClick = g_condemned2_input_driver->MouseClick();
     if (action == Action::Attack || action == Action::CancelTask) {
-      return mouseClick.isMouseRight;
+      return mouseClick.isMouseRight || mouseClick.isMouseRightPressed;
     }else if(action == Action::Block){
-      return mouseClick.isMouseLeft;
+      return mouseClick.isMouseLeft || mouseClick.isMouseLeftPressed;
     }
 
     //Melee Combos

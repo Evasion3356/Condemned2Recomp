@@ -176,6 +176,9 @@ namespace rex::input::condemned2input{
             "condemned2_input_use",
             "condemned2_input_check",
             "condemned2_input_objectives",
+            "condemned2_input_tool_take_picture",
+            "condemned2_input_zoom",
+            "condemned2_input_hook_attacks",
          };
    };
 

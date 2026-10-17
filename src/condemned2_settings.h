@@ -26,7 +26,7 @@ namespace Condemned2 {
 
         private:
             inline static const std::string _title = "Condemned 2: Bloodshot"; // Window title
-            inline static const std::string _version = "0.3.0"; // Application version
+            inline static const std::string _version = "0.3.6"; // Application version
             inline static const std::vector<ConfigSetting> _requiredSettings = { // Required Settings 
                 //DX12
                 {"render_target_path_d3d12","rtv"}, 
@@ -56,8 +56,8 @@ namespace Condemned2 {
                 {"anisotropic_override", "2"},
                 {"resolution_scale", "2"},
                 //Vsync
-                {"vsync","true"},
-                {"video_mode_refresh_rate","60"},
+                {"vsync","false"},
+                {"video_mode_refresh_rate","120"},
                 //PC Controls
                 {"input_backend","sdl"},
             };
