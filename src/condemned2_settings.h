@@ -57,7 +57,7 @@ namespace Condemned2 {
                 {"resolution_scale", "2"},
                 //Vsync
                 {"vsync","true"},
-                {"video_mode_refresh_rate","60"},
+                {"video_mode_refresh_rate","120"},
                 //PC Controls
                 {"input_backend","sdl"},
             };
