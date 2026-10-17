@@ -16,10 +16,6 @@
 #include <cstring>
 #include <atomic>
 #include <thread>
-
-#include <suite/extraction_rules.h>
-#include <suite/file_dialog.h>
-
 #ifdef _WIN32
     #include <Windows.h>
 #else
@@ -28,6 +24,8 @@
     #include <sys/wait.h>
     #include <unistd.h>
 #endif
+#include <suite/extraction_rules.h>
+#include <suite/file_dialog.h>
 
 namespace RexGlueSuite {
     class ProcessRunner {
@@ -207,9 +205,11 @@ namespace RexGlueSuite {
                 return false;
             }
         }
-
         static std::thread NewThread(std::filesystem::path _appPath, const std::vector<std::string>& _args, ProcessInfo _processInfo ){
-          return std::thread (RunProcess, _appPath, _args, _processInfo ); 
+            return std::thread (RunProcess, _appPath, _args, _processInfo ); 
+        }
+        static void NewThreadDetached(std::filesystem::path _appPath, const std::vector<std::string> _args, ProcessInfo _processInfo){
+            std::thread([_appPath = std::move(_appPath), _args = std::move(_args), _processInfo = std::move(_processInfo)]() mutable { RunProcess(std::move(_appPath), std::move(_args), std::move(_processInfo)); }).detach();
         }
   };
 }

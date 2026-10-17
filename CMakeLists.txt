@@ -11,7 +11,7 @@ set(CMAKE_CXX_STANDARD_REQUIRED ON)
 include(generated/rexglue.cmake)
 
 # -------------------------------------------------
-# Condemned2Recomp Sources
+# RexGlue-SDk / Condemned2Recomp Sources
 # -------------------------------------------------
 set(CONDEMNED2RECOMP_SOURCES
     src/main.cpp
@@ -22,10 +22,6 @@ set(CONDEMNED2RECOMP_SOURCES
     src/condemned2_cheats.cpp
     src/condemned2_multiplayer.cpp
 )
-
-# -------------------------------------------------
-# RexGlue-SDk
-# -------------------------------------------------
 if(WIN32)
     add_executable(condemned2recomp WIN32 ${CONDEMNED2RECOMP_SOURCES})
 else()
@@ -35,6 +31,18 @@ endif()
 rexglue_setup_target(condemned2recomp)
 
 # -------------------------------------------------
+# Condemned2Recomp Updater
+# -------------------------------------------------
+# This simply replaces the main app with the downloaded update
+set(CONDEMNED2RECOMP_UPDATE_SOURCES
+    src/main_updater.cpp
+)
+add_executable(condemned2recomp_updater ${CONDEMNED2RECOMP_UPDATE_SOURCES}) 
+target_include_directories(condemned2recomp_updater PRIVATE
+    "${CMAKE_CURRENT_SOURCE_DIR}/src"
+)
+
+# -------------------------------------------------
 # Dependencies
 # -------------------------------------------------
 # See THIRD-PARTY-NOTICES
@@ -42,7 +50,9 @@ set(_prev_shared ${BUILD_SHARED_LIBS})
 set(BUILD_SHARED_LIBS OFF CACHE BOOL "" FORCE)
 include(FetchContent)
 
-#zlib
+# -------------------------------------------------
+# zlib
+# -------------------------------------------------
 FetchContent_Declare(zlib
   GIT_REPOSITORY https://github.com/madler/zlib.git
   GIT_TAG v1.3.1
@@ -63,7 +73,9 @@ elseif (TARGET zlib AND NOT TARGET ZLIB::ZLIB)
   add_library(ZLIB::ZLIB ALIAS zlib)
 endif()
 
+# -------------------------------------------------
 # curl
+# -------------------------------------------------
 FetchContent_Declare(curl
   GIT_REPOSITORY https://github.com/curl/curl.git
   GIT_TAG curl-8_10_1
@@ -84,10 +96,12 @@ endif()
 FetchContent_MakeAvailable(curl)
 target_link_libraries(condemned2recomp PRIVATE CURL::libcurl )
 
-#libzip
+# -------------------------------------------------
+# libzip
+# -------------------------------------------------
 FetchContent_Declare(libzip
   GIT_REPOSITORY https://github.com/nih-at/libzip.git
-  GIT_TAG v1.10.1
+  GIT_TAG 8e037534ccd62f444abbe4ce265443ee74bbfeb3 #v1.10.1
   GIT_SHALLOW TRUE
 )
 set(ENABLE_BZIP2 OFF CACHE BOOL "" FORCE)
@@ -99,13 +113,27 @@ set(BUILD_EXAMPLES OFF CACHE BOOL "" FORCE)
 set(BUILD_DOC OFF CACHE BOOL "" FORCE)
 FetchContent_MakeAvailable(libzip)
 target_link_libraries(condemned2recomp PRIVATE libzip::zip)
+target_link_libraries(condemned2recomp_updater PRIVATE libzip::zip)
 
-#PicaSHA2
+# -------------------------------------------------
+# PicoSHA2
+# -------------------------------------------------
 FetchContent_Declare(pico
     GIT_REPOSITORY https://github.com/okdshin/PicoSHA2
     GIT_TAG 161cb3fc4170fa7a3eca9e582cebd27cc4d1fe29
     GIT_SHALLOW TRUE)
 FetchContent_MakeAvailable(pico)
 target_include_directories(condemned2recomp PRIVATE ${pico_SOURCE_DIR} )
+target_include_directories(condemned2recomp_updater PRIVATE ${pico_SOURCE_DIR} )
 set(BUILD_SHARED_LIBS ${_prev_shared} CACHE BOOL "" FORCE)
+
 # -------------------------------------------------
+# json
+# -------------------------------------------------
+include(FetchContent)
+FetchContent_Declare(json
+  GIT_REPOSITORY https://github.com/nlohmann/json.git
+  GIT_TAG 55f93686c01528224f448c19128836e7df245f72
+)
+FetchContent_MakeAvailable(json)
+target_link_libraries(condemned2recomp PRIVATE nlohmann_json::nlohmann_json)

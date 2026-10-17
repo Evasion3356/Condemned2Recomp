@@ -242,7 +242,7 @@ namespace RexGlueSuite {
 
           std::filesystem::path outPath = _basePath / fullPath;
           XdvdfsFileEntry fileEntry = { outPath.string(), partitionBaseSector + entry->sector, entry->size};
-          if(!ExtractionRules::IsPathSafe(fileEntry.fullPath, fileEntry.sector, "rexglue_suite_xdvdfs")){
+          if(!ExtractionRules::IsPathSafe(fileEntry.fullPath)){
             return;
           }
 
@@ -275,7 +275,7 @@ namespace RexGlueSuite {
               continue;
             }
 
-            if (!ExtractionRules::IsPathSafe(entry.fullPath, entry.sector, "rexglue_suite_xdvdfs")){
+            if (!ExtractionRules::IsPathSafe(entry.fullPath)){
               continue;
             }
 
