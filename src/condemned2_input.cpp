@@ -382,7 +382,10 @@ namespace rex::input::condemned2input {
     if(Pressed(activeBinds["condemned2_input_taser"])){ //buttons |= X_INPUT_GAMEPAD_DPAD_UP
       NativeKeyPress(0x3e);
     }
-    Held(activeBinds["condemned2_input_hook_attacks"], {0x42, 0xa8} );
+    if(Pressed(activeBinds["condemned2_input_hook_attacks"])){ 
+      NativeKeyPress(0x42);
+      NativeKeyPress(0xa8);
+    }
     Held(activeBinds["condemned2_input_objectives"], {0x4f, 0x4e} );
     Held(activeBinds["condemned2_input_forensics"], {0x74, 0x71} );
     if(Pressed(activeBinds["condemned2_input_tool_take_picture"])){

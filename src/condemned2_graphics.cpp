@@ -42,6 +42,7 @@
 REXCVAR_DEFINE_DOUBLE(condemned2_maxfps, 0.0, "Condemned 2/Graphics", "Max FPS ( 0 disables limiter! 144 is the recommended max fps! )");
 REXCVAR_DEFINE_DOUBLE(condemned2_fov, 1.0, "Condemned 2/Graphics", "Scales the camera's FOV");
 REXCVAR_DEFINE_BOOL(condemned2_vsync, false,"Condemned 2/Graphics", "Toggles internal Vsync, separate from Xenos Vsync");
+REXCVAR_DEFINE_DOUBLE(condemned2_min_frame_rate, 144,"Condemned 2/Graphics", "Sets internal minimum frame rate.");
 REXCVAR_DEFINE_BOOL(condemned2_screen_effects, true, "Condemned 2/Graphics", "Toggles screen effects, such as film grain and bloom.");
 REXCVAR_DEFINE_STRING(condemned2_shadow_quality, "High","Condemned 2/Graphics", "Enhances shadows by allowing more objects to cast shadows!").allowed({"Native", "Low", "Medium", "High"});
 
@@ -87,6 +88,7 @@ namespace rex::graphics::condemned2graphics {
         //Sets on flag callback
         _hook->AddHook({"condemned2_maxfps", 0x8292864C, 0.0f, 15.0f, 144.0f });
         _hook->AddHook({"condemned2_fov", 0x8209C2AC, 0.01745329238474369f, 0.75f, 1.25f, true }); // Scales default FOV value!
+        _hook->AddHook({"condemned2_min_frame_rate", 0x8201B97C, 144.0f, 30.0f, 144.0f });
 
         //Send console commands
         rex::cvar::RegisterChangeCallback("condemned2_screen_effects", [&](std::string_view name, std::string_view new_value) {
