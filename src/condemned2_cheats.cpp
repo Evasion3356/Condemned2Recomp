@@ -38,7 +38,7 @@ REXCVAR_DEFINE_STRING(condemned2_cmd, "", "Condemned 2/Extras/Console", "Runs co
 REXCVAR_DEFINE_STRING(condemned2_msg, "", "Condemned 2/Extras/Console", "Sends commands to managers.");
 
 //Weapon Spawner
-REXCVAR_DEFINE_STRING(condemned2_weapon_spawner, "None","Condemned 2/Extras/Unlockables", "Allows you to spawn any weapon in-game.").allowed({ //Values found in yeti.gamedb!
+REXCVAR_DEFINE_STRING(condemned2_weapon_spawner, "None","Condemned 2/Extras/Unlockables", "Allows you to spawn any weapon in-game. (Work-in-progress)").allowed({ //Values found in yeti.gamedb!
     "None", "Baseball_Bat", "Baton", "BattleAxe", "Brick", "Broadsword", "Cleaver", "Crowbar", "FireAxe",
     "Flashlight", "Golf_Club","Handgun_22", "Handgun_38", "Handgun_44", "Handgun_9mm", "Large_Wrench", 
     "Paper_Cutter", "Pipe", "Pipe_Lever", "Pipe_Steam", "Rebar_Bent", "Rebar_Straight", "Rip_Hammer", 

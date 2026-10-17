@@ -429,12 +429,14 @@ namespace Condemned2 {
 
         //End States
         LauncherDialog stepExit;
+        stepExit.customOnly = true;
         stepExit.onStart = [&](){
           _app_context->QuitFromUIThread();
         };
         stateTable[LauncherState::Exit] = stepExit;
 
         LauncherDialog stepComplete;
+        stepComplete.customOnly = true;
         stepComplete.onStart = [&](){FinishInstallation();};
         stateTable[LauncherState::Complete] = stepComplete;
 
@@ -586,8 +588,10 @@ namespace Condemned2 {
         ImGui::EndChild();
   
         //Draw custom controls only
-        if(newStep.customOnly && newStep.onDraw){
-          newStep.onDraw(io);
+        if(newStep.customOnly){
+          if(newStep.onDraw){
+            newStep.onDraw(io);
+          }
           return;
         }
 
