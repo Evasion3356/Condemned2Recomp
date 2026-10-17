@@ -21,8 +21,10 @@
 #include <condemned2_hooks.h>
 
 REX_EXTERN(__imp__Unlockables_Levels);
-REX_EXTERN(__imp__Unlockables_GunEfficiency);
 REX_EXTERN(__imp__Unlockables_Upgrades);
+REX_EXTERN(__imp__GunAccuracyMultiplier);
+REX_EXTERN(__imp__ProjectileAccuracyMultiplier);
+REX_EXTERN(__imp__RandomAccuracyKnockoff);
 
 //Cheats
 REXCVAR_DEFINE_BOOL(condemned2_cheat_fps_mode, false, "Condemned 2/Extras/Unlockables", "FPS Mode ( Must be enabled before entering menu!!! )");
@@ -30,7 +32,7 @@ REXCVAR_DEFINE_BOOL(condemned2_cheat_unlock_all_levels, false, "Condemned 2/Extr
 REXCVAR_DEFINE_BOOL(condemned2_cheat_unlock_upgrades, false, "Condemned 2/Extras/Unlockables", "Unlocks all upgrades!");
 REXCVAR_DEFINE_BOOL(condemned2_cheat_top_gun_accuracy, false, "Condemned 2/Extras/Unlockables", "Gives player 100% gun efficiency!");
 //QoL
-REXCVAR_DEFINE_BOOL(condemned2_qol_skip_intro_movies, false, "Condemned 2/Extras/QoL Improvements", "Skips intro movies.");
+//REXCVAR_DEFINE_BOOL(condemned2_qol_skip_intro_movies, false, "Condemned 2/Extras/QoL Improvements", "Skips intro movies.");
 REXCVAR_DEFINE_BOOL(condemned2_qol_skip_ingame_movies, false, "Condemned 2/Extras/QoL Improvements", "Skips in-game movies.");
 //Console
 //QoL
@@ -79,11 +81,11 @@ namespace Condemned2 {
         });
         _hook->SendCommandCmd("FPSMode",  std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_cheat_fps_mode") ) ) ); 
 
-        // Skip Intro Movies ( BUG: Skips movies, but breaks at start screen!? )
-        rex::cvar::RegisterChangeCallback("condemned2_qol_skip_intro_movies", [&](std::string_view name, std::string_view new_value) {
+        // Skip Intro Movies
+        /*rex::cvar::RegisterChangeCallback("condemned2_qol_skip_intro_movies", [&](std::string_view name, std::string_view new_value) {
             _hook->SendCommandCmd("SkipSplashScreens",  std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) ); //SkipSplashScreens
         });
-        _hook->SendCommandCmd("SkipSplashScreens",  std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_qol_skip_intro_movies") ) ) ); 
+        _hook->SendCommandCmd("SkipSplashScreens",  std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_qol_skip_intro_movies") ) ) );*/
     
         // Skip In-Game Movies
         rex::cvar::RegisterChangeCallback("condemned2_qol_skip_ingame_movies", [&](std::string_view name, std::string_view new_value) {
@@ -137,18 +139,34 @@ namespace Condemned2 {
         __imp__Unlockables_Levels(ctx, base);
     }
 
-    REX_HOOK_RAW(Unlockables_GunEfficiency) {
-        if( g_condemned2_cheats->HasTopGunEfficiency() ){
-            ctx.f1.f32 = 100.0f;
-            return;
-        }
-        __imp__Unlockables_GunEfficiency(ctx, base);
-    }
-
     REX_HOOK_RAW(Unlockables_Upgrades) {
         if(  g_condemned2_cheats->HasAllUpgrades() ){
             return;
         }
         __imp__Unlockables_Upgrades(ctx, base);
+    }
+
+    REX_HOOK_RAW(GunAccuracyMultiplier) {
+        if( g_condemned2_cheats->HasTopGunEfficiency() ){
+            ctx.f1.f32 = 0.0f;
+            return;
+        }
+        __imp__GunAccuracyMultiplier(ctx, base);
+    }
+
+    REX_HOOK_RAW(ProjectileAccuracyMultiplier) {
+        if( g_condemned2_cheats->HasTopGunEfficiency() ){
+            ctx.f1.f32 = 0.0f;
+            return;
+        }
+        __imp__ProjectileAccuracyMultiplier(ctx, base);
+    }
+
+    REX_HOOK_RAW(RandomAccuracyKnockoff) {
+        if( g_condemned2_cheats->HasTopGunEfficiency() ){
+            ctx.f1.f32 = 0.0f;
+            return;
+        }
+        __imp__RandomAccuracyKnockoff(ctx, base);
     }
 }  // namespace Condemned2

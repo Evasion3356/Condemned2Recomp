@@ -84,7 +84,9 @@
 #Unlockables and Cheats
 0x823077E0 = {name="Unlockables_Levels"}
 0x823079C8 = {name="Unlockables_Upgrades"}
-0x8230AC08 = {name="Unlockables_GunEfficiency"}
+0x823DE5D8 = {name="GunAccuracyMultiplier"}
+0x826BFF48 = {name="ProjectileAccuracyMultiplier"}
+0x826C0290 = {name="RandomAccuracyKnockoff"}
 
 # Gameplay
 0x823D56C0 = {name="TvAntennaAdjust"} # Used to toggle additive mouse input

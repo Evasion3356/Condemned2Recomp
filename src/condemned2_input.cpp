@@ -46,6 +46,8 @@ REXCVAR_DEFINE_STRING(condemned2_input_tool_uv, "1", "Condemned 2/Input/Keyboard
 REXCVAR_DEFINE_STRING(condemned2_input_tool_camera, "2", "Condemned 2/Input/Keyboard", "Camera");
 REXCVAR_DEFINE_STRING(condemned2_input_tool_spectrometer, "3", "Condemned 2/Input/Keyboard", "Spectrometer");
 REXCVAR_DEFINE_STRING(condemned2_input_tool_gps, "4", "Condemned 2/Input/Keyboard", "GPS");
+REXCVAR_DEFINE_STRING(condemned2_input_tool_take_picture, "Mouse1, E, Enter", "Condemned 2/Input/Keyboard", "Shutter button for the camera.");
+REXCVAR_DEFINE_STRING(condemned2_input_zoom, "Mouse2, V", "Condemned 2/Input/Keyboard", "Camera zooms in, used for investigations and spectating");
 
 REXCVAR_DEFINE_STRING(condemned2_input_flashlight, "F", "Condemned 2/Input/Keyboard", "Flashlight");
 REXCVAR_DEFINE_STRING(condemned2_input_use, "E", "Condemned 2/Input/Keyboard", "Use");
@@ -250,133 +252,7 @@ namespace rex::input::condemned2input {
       }
     }
 
-    // Native PC Controls
-    // UI Controls
-    // Navigation
-    if(!IsDown(activeBinds["menu_nav_up"]) && activeBinds["menu_nav_up"].prev ){
-      NativeKeyPress(0x82, true);
-    }
-    if(!IsDown(activeBinds["menu_nav_down"]) && activeBinds["menu_nav_down"].prev ){
-      NativeKeyPress(0x83, true);
-    }
-    if(!IsDown(activeBinds["menu_nav_left"]) && activeBinds["menu_nav_left"].prev ){
-      NativeKeyPress(0x84, true);
-    }
-    if(!IsDown(activeBinds["menu_nav_right"]) && activeBinds["menu_nav_right"].prev ){
-      NativeKeyPress(0x85, true);
-    }
-    if(Pressed(activeBinds["menu_nav_up"]) ){
-      NativeKeyPress(0x82);
-    } 
-    if(Pressed(activeBinds["menu_nav_down"])){
-      NativeKeyPress(0x83);
-    }
-    if(Pressed(activeBinds["menu_nav_left"]) ){
-      NativeKeyPress(0x84);
-    }
-    if(Pressed(activeBinds["menu_nav_right"]) ){
-      NativeKeyPress(0x85);
-    }
-    if(Pressed(activeBinds["menu_category_left"]) ){ //buttons |= X_INPUT_GAMEPAD_LEFT_SHOULDER
-      //NativeKeyPress(0x84);
-      NativeKeyPress(0x8d);
-    }
-    if(Pressed(activeBinds["menu_category_right"]) ){ //buttons |= X_INPUT_GAMEPAD_RIGHT_SHOULDER;
-      //NativeKeyPress(0x85);
-      NativeKeyPress(0x8e);
-    }
-    // Commands
-    if(Pressed(activeBinds["menu_enter"])){ // buttons |= X_INPUT_GAMEPAD_A;
-      //Submit menu confirm
-      NativeKeyPress(0xa6);
-      NativeKeyPress(0x5b);
-      //Menu confirm
-      NativeKeyPress(0x87);
-      NativeKeyPress(0xb5);
-      //In-game menu confirm
-      NativeKeyPress(0x57);
-      NativeKeyPress(0xa7);
-      NativeKeyPress(0xb7); // Used for dialogs in fight club
-      NativeKeyPress(0xba); // Close tutorial dialogs
-    }
-    if(Pressed(activeBinds["menu_go_back"])){ //buttons |= X_INPUT_GAMEPAD_B;
-      NativeKeyPress(0x88);
-      NativeKeyPress(0xba); // Close tutorial dialogs
-    }
-
-    //Player Input
-    //Actions
-    if(Pressed(activeBinds["pause_menu"])){ //buttons |= X_INPUT_GAMEPAD_START
-      NativeKeyPress(0xd);
-    }
-    if(Pressed(activeBinds["condemned2_input_use"])){ //buttons |= X_INPUT_GAMEPAD_A;
-      NativeKeyPress(0x5d);
-    }
-    if(Pressed(activeBinds["condemned2_input_flashlight"])){ //buttons |= X_INPUT_GAMEPAD_B;
-      NativeKeyPress(0x72);
-      NativeKeyPress(0x8c);
-    }
-    if(Pressed(activeBinds["condemned2_input_check"])){
-      NativeKeyPress(0x3d);
-    }
-    if(Pressed(activeBinds["condemned2_input_kick"])){ //buttons |= X_INPUT_GAMEPAD_RIGHT_THUMB;
-      NativeKeyPress(0x5a);
-    }
-    if(Pressed(activeBinds["condemned2_input_throw"])){ //buttons |= X_INPUT_GAMEPAD_RIGHT_SHOULDER;
-      NativeKeyPress(0x3f);
-    }
-    if(Pressed(activeBinds["condemned2_input_drop"])){ //buttons |= X_INPUT_GAMEPAD_DPAD_DOWN;
-      NativeKeyPress(0x66);
-    }
-    if(Pressed(activeBinds["condemned2_input_taser"])){ //buttons |= X_INPUT_GAMEPAD_DPAD_UP
-      NativeKeyPress(0x3e);
-    }
-    if(Pressed(activeBinds["condemned2_input_objectives"])){ //buttons |= X_INPUT_GAMEPAD_BACK;
-      NativeKeyPress(0x4f);
-      NativeKeyPress(0x4e);
-      SetShowObjectives(true);
-    }else if(!IsDown(activeBinds["condemned2_input_objectives"]) && IsShowObjectives()){ 
-      NativeKeyPress(0x4f, true);
-      NativeKeyPress(0x4e, true);
-      SetShowObjectives(false);
-    }
-    // Forensic Tools
-    if(Pressed(activeBinds["condemned2_input_forensics"])){ // Initial forensic tool selection
-      NativeKeyPress(0x74);
-      NativeKeyPress(0x71);
-      SetToolSelection(true);
-    }else if(!IsDown(activeBinds["condemned2_input_forensics"]) && IsSelectingTool()){ // No longer selecting a forensic tool
-      NativeKeyPress(0x70);
-      NativeKeyPress(0x74);
-      SetToolSelection(false);
-    }
-    // Quick-swap (Custom controls)
-    if(Pressed(activeBinds["condemned2_input_tool_uv"])){
-      NativeKeyPress(0x71);
-      NativeKeyPress(0x90);
-      NativeKeyPress(0x96);
-      NativeKeyPress(0xa0);
-    }
-    if(Pressed(activeBinds["condemned2_input_tool_camera"])){
-      NativeKeyPress(0x71);
-      NativeKeyPress(0x98);
-      NativeKeyPress(0x9e);
-      NativeKeyPress(0xa0);
-    }
-    if(Pressed(activeBinds["condemned2_input_tool_spectrometer"])){
-      NativeKeyPress(0x74);
-      NativeKeyPress(0x71);
-      NativeKeyPress(0x97);
-      NativeKeyPress(0xa1);
-    }
-    if(Pressed(activeBinds["condemned2_input_tool_gps"])){
-      NativeKeyPress(0x74);
-      NativeKeyPress(0x71);
-      NativeKeyPress(0x99);
-      NativeKeyPress(0x9f);
-    }
-
-     //Left Stick/Movement
+         //Left Stick/Movement
     double lx = 0;
     double ly = 0;
     double moveScale = 1;
@@ -420,13 +296,22 @@ namespace rex::input::condemned2input {
       NativeKeyPress(0x47);
       NativeKeyPress(0x79);
       NativeKeyPress(0x1c);
-      NativeKeyPress(0x8b);
     }
     if(mouse_clicks.isMouseRightPressed){
       NativeKeyPress(0x11);
       NativeKeyPress(0x7a);
-      NativeKeyPress(0x65);
       NativeKeyPress(0xbc);
+    }
+
+    //Mouse wheel events
+    float wheelY = 0;
+    SDL_Event event;
+    while (SDL_PollEvent(&event)) {
+      switch (event.type) {
+        case SDL_EVENT_MOUSE_WHEEL:
+          wheelY += event.wheel.y;
+        break;
+      }
     }
 
     // Mouse look
@@ -442,6 +327,143 @@ namespace rex::input::condemned2input {
     last_add_dy += -last_dy * 0.01f;
     last_add_dx = std::clamp(last_add_dx, -1.0, 1.0);
     last_add_dy = std::clamp(last_add_dy, -1.0, 1.0);
+
+    // Native PC Controls
+    // UI Controls
+    // Navigation
+    if((!IsDown(activeBinds["menu_nav_up"]) && activeBinds["menu_nav_up"].prev) || wheelY == 0.0f ){
+      NativeKeyPress(0x82, true);
+    }
+    if((!IsDown(activeBinds["menu_nav_down"]) && activeBinds["menu_nav_down"].prev) || wheelY == 0.0f ){
+      NativeKeyPress(0x83, true);
+    }
+    if((!IsDown(activeBinds["menu_nav_left"]) && activeBinds["menu_nav_left"].prev) ){
+      NativeKeyPress(0x84, true);
+    }
+    if((!IsDown(activeBinds["menu_nav_right"]) && activeBinds["menu_nav_right"].prev) ){
+      NativeKeyPress(0x85, true);
+    }
+    if(Pressed(activeBinds["menu_nav_up"]) || wheelY > 0.0f ){
+      NativeKeyPress(0x82);
+      activeBinds["menu_nav_up"].prev = true;
+    } 
+    if(Pressed(activeBinds["menu_nav_down"]) || wheelY < 0.0f){
+      NativeKeyPress(0x83);
+      activeBinds["menu_nav_down"].prev = true;
+    }
+    if(Pressed(activeBinds["menu_nav_left"]) ){
+      NativeKeyPress(0x84);
+    }
+    if(Pressed(activeBinds["menu_nav_right"]) ){
+      NativeKeyPress(0x85);
+    }
+    if(Pressed(activeBinds["menu_category_left"]) ){ //buttons |= X_INPUT_GAMEPAD_LEFT_SHOULDER
+      //NativeKeyPress(0x84);
+      NativeKeyPress(0x8d);
+    }
+    if(Pressed(activeBinds["menu_category_right"]) ){ //buttons |= X_INPUT_GAMEPAD_RIGHT_SHOULDER;
+      //NativeKeyPress(0x85);
+      NativeKeyPress(0x8e);
+    }
+    // Commands
+    if(Pressed(activeBinds["menu_enter"])){ // buttons |= X_INPUT_GAMEPAD_A;
+      //Submit menu confirm
+      NativeKeyPress(0xa6);
+      NativeKeyPress(0x5b);
+      //Menu confirm
+      NativeKeyPress(0x87);
+      NativeKeyPress(0xb5);
+      //In-game menu confirm
+      NativeKeyPress(0xa7);
+      NativeKeyPress(0xb7); // Used for dialogs in fight club
+      NativeKeyPress(0xba); // Close tutorial dialogs
+    }
+    if(Pressed(activeBinds["menu_go_back"])){ //buttons |= X_INPUT_GAMEPAD_B;
+      NativeKeyPress(0x88);
+      NativeKeyPress(0xba); // Close tutorial dialogs
+      NativeKeyPress(0x65); // Cancel investigation
+    }
+
+    //Player Input
+    //Actions
+    if(Pressed(activeBinds["pause_menu"])){ //buttons |= X_INPUT_GAMEPAD_START
+      NativeKeyPress(0xd);
+    }
+    if(Pressed(activeBinds["condemned2_input_use"])){ //buttons |= X_INPUT_GAMEPAD_A;
+      NativeKeyPress(0x57);
+      //NativeKeyPress(0x5d);
+    }
+    if(Pressed(activeBinds["condemned2_input_flashlight"])){ //buttons |= X_INPUT_GAMEPAD_B;
+      NativeKeyPress(0x72);
+      NativeKeyPress(0x8c);
+    }
+    if(Pressed(activeBinds["condemned2_input_check"])){
+      NativeKeyPress(0x3d);
+    }
+    if(Pressed(activeBinds["condemned2_input_kick"])){ //buttons |= X_INPUT_GAMEPAD_RIGHT_THUMB;
+      NativeKeyPress(0x5a);
+    }
+    if(Pressed(activeBinds["condemned2_input_throw"])){ //buttons |= X_INPUT_GAMEPAD_RIGHT_SHOULDER;
+      NativeKeyPress(0x3f);
+    }
+    if(Pressed(activeBinds["condemned2_input_drop"])){ //buttons |= X_INPUT_GAMEPAD_DPAD_DOWN;
+      NativeKeyPress(0x66);
+    }
+    if(Pressed(activeBinds["condemned2_input_taser"])){ //buttons |= X_INPUT_GAMEPAD_DPAD_UP
+      NativeKeyPress(0x3e);
+    }
+    if(IsDown(activeBinds["condemned2_input_zoom"])){
+      NativeKeyPress(0x8b);
+    }
+    if(Pressed(activeBinds["condemned2_input_tool_take_picture"])){
+      NativeKeyPress(0xb9);
+    }
+    if(Pressed(activeBinds["condemned2_input_objectives"])){ //buttons |= X_INPUT_GAMEPAD_BACK;
+      NativeKeyPress(0x4f);
+      NativeKeyPress(0x4e);
+      SetShowObjectives(true);
+    }else if(!IsDown(activeBinds["condemned2_input_objectives"]) && IsShowObjectives()){ 
+      NativeKeyPress(0x4f, true);
+      NativeKeyPress(0x4e, true);
+      SetShowObjectives(false);
+    }
+
+    // Forensic Tools
+    if(Pressed(activeBinds["condemned2_input_forensics"])){ // Initial forensic tool selection
+      NativeKeyPress(0x74);
+      NativeKeyPress(0x71);
+      SetToolSelection(true);
+    }else if(!IsDown(activeBinds["condemned2_input_forensics"]) && IsSelectingTool()){ // No longer selecting a forensic tool
+      NativeKeyPress(0x70);
+      NativeKeyPress(0x74);
+      SetToolSelection(false);
+    }
+
+    // Quick-swap (Custom controls)
+    if(Pressed(activeBinds["condemned2_input_tool_uv"])){
+      NativeKeyPress(0x71);
+      NativeKeyPress(0x90);
+      NativeKeyPress(0x96);
+      NativeKeyPress(0xa0);
+    }
+    if(Pressed(activeBinds["condemned2_input_tool_camera"])){
+      NativeKeyPress(0x71);
+      NativeKeyPress(0x98);
+      NativeKeyPress(0x9e);
+      NativeKeyPress(0xa0);
+    }
+    if(Pressed(activeBinds["condemned2_input_tool_spectrometer"])){
+      NativeKeyPress(0x74);
+      NativeKeyPress(0x71);
+      NativeKeyPress(0x97);
+      NativeKeyPress(0xa1);
+    }
+    if(Pressed(activeBinds["condemned2_input_tool_gps"])){
+      NativeKeyPress(0x74);
+      NativeKeyPress(0x71);
+      NativeKeyPress(0x99);
+      NativeKeyPress(0x9f);
+    }
 
     //Update controller
     packet_number_++; // Increment input packet number

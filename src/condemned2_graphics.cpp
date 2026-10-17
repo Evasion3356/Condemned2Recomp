@@ -25,7 +25,7 @@
 #include <condemned2_hooks.h>
 
 //Rex Cvars
-REXCVAR_DEFINE_STRING(condemned2_native_resolution, "1280x720","Condemned 2/Graphics", "Native Resolution").allowed({
+/*REXCVAR_DEFINE_STRING(condemned2_native_resolution, "1280x720","Condemned 2/Graphics", "Native Resolution").allowed({
     "1024x576",
     "1280x720",
     "1366x768",
@@ -38,7 +38,7 @@ REXCVAR_DEFINE_STRING(condemned2_native_resolution, "1280x720","Condemned 2/Grap
     int width, height;
     sscanf_s(std::string(v).c_str(), "%dx%d", &width, &height);
     return width >= 1024 && height >= 576; 
-});
+});*/
 REXCVAR_DEFINE_DOUBLE(condemned2_maxfps, 0.0, "Condemned 2/Graphics", "Max FPS ( 0 disables limiter! 144 is the recommended max fps! )");
 REXCVAR_DEFINE_DOUBLE(condemned2_fov, 1.0, "Condemned 2/Graphics", "Scales the camera's FOV");
 REXCVAR_DEFINE_BOOL(condemned2_vsync, false,"Condemned 2/Graphics", "Toggles internal Vsync, separate from Xenos Vsync");
@@ -65,10 +65,10 @@ namespace rex::graphics::condemned2graphics {
     Condemned2Graphics::~Condemned2Graphics() = default;
 
     void Condemned2Graphics::InitializeGraphics(){
-        rex::cvar::RegisterChangeCallback("condemned2_native_resolution", [&](std::string_view name, std::string_view new_value) {
+        /*rex::cvar::RegisterChangeCallback("condemned2_native_resolution", [&](std::string_view name, std::string_view new_value) {
             _screenResolution = GetScreenResolutionFromString(std::string( new_value ));
         });
-        _screenResolution = GetScreenResolutionFromString(REXCVAR_GET(condemned2_native_resolution));
+        _screenResolution = GetScreenResolutionFromString(REXCVAR_GET(condemned2_native_resolution));*/
 
         rex::cvar::RegisterChangeCallback("condemned2_shadow_quality", [&](std::string_view name, std::string_view new_value) {
             _minShadowLOD = GetMinShadowLODFromString(std::string( new_value ));
