@@ -271,10 +271,10 @@ namespace rex::input::condemned2input {
     
     // Mouse Button Events
     bool hasMeleeWeapon = IsUsingMeleeWeapon();
-    bool isMouseLeft = IsDown(activeBinds["condemned2_input_primary_fire"]);
-    bool isMouseRight = IsDown(activeBinds["condemned2_input_secondary_fire"]);
     bool isMouseLeftPressed = Pressed(activeBinds["condemned2_input_primary_fire"]);
     bool isMouseRightPressed = Pressed(activeBinds["condemned2_input_secondary_fire"]);
+    bool isMouseLeft = IsDown(activeBinds["condemned2_input_primary_fire"]);
+    bool isMouseRight = IsDown(activeBinds["condemned2_input_secondary_fire"]);
     mouse_clicks = { 
       !hasMeleeWeapon ? isMouseRight : isMouseLeft, 
       !hasMeleeWeapon ? isMouseLeft : isMouseRight, 
@@ -587,9 +587,9 @@ namespace rex::input::condemned2input {
     //Firearms
     MouseBind mouseClick = g_condemned2_input_driver->MouseClick();
     if (btn == 0x11 || btn == 0x65 ) {
-      return mouseClick.isMouseRight;
+      return mouseClick.isMouseRight || mouseClick.isMouseRightPressed;
     }else if(btn == 0x1c){ 
-      return mouseClick.isMouseLeft;
+      return mouseClick.isMouseLeft || mouseClick.isMouseLeftPressed;
     }
 
     //Melee Combos

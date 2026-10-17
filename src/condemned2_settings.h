@@ -56,7 +56,7 @@ namespace Condemned2 {
                 {"anisotropic_override", "2"},
                 {"resolution_scale", "2"},
                 //Vsync
-                {"vsync","true"},
+                {"vsync","false"},
                 {"video_mode_refresh_rate","120"},
                 //PC Controls
                 {"input_backend","sdl"},
