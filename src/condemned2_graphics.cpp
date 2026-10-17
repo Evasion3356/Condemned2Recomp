@@ -91,14 +91,14 @@ namespace rex::graphics::condemned2graphics {
         _hook->AddHook({"condemned2_fov", 0x8209C2AC, 0.01745329238474369f, 0.75f, 1.25f, true }); // Scales default FOV value!
 
         //Send console commands
-        _hook->AddHook({"condemned2_screen_effects", 0, 1.0, 0.0, 1.0, false, [&](std::string_view name, std::string_view new_value) {
+        rex::cvar::RegisterChangeCallback("condemned2_screen_effects", [&](std::string_view name, std::string_view new_value) {
             _hook->SendCommandCmd("EnableScreenEffects", std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) );
-        }});
+        });
         _hook->SendCommandCmd("EnableScreenEffects", std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_screen_effects") ) ) );
 
-        _hook->AddHook({"condemned2_vsync", 0, 0.0, 0.0, 1.0, false, [&](std::string_view name, std::string_view new_value) {
+        rex::cvar::RegisterChangeCallback("condemned2_vsync", [&](std::string_view name, std::string_view new_value) {
             _hook->SendCommandCmd("VSyncOnFlip", std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) );
-        }});
+        });
         _hook->SendCommandCmd("VSyncOnFlip", std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_vsync") ) ) );
     }
 

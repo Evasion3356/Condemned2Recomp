@@ -4,116 +4,18 @@
 
 #pragma once
 
-#include "picosha2.h"
 #include <curl/curl.h>
-#include <zip.h>
 #include <fstream>
 #include <iostream>
 #include <filesystem>
 #include <atomic>
 #include <thread>
+#include <suite/extraction_rules.h>
+#include <suite/zip_extractor.h>
 
 namespace RexGlueSuite {
     class Downloader {
         public:
-            static bool ExtractZipFile(const std::filesystem::path& archive, const std::filesystem::path& destination, ProcessInfo _processInfo )
-            {
-                int error = 0;
-                std::string errorStr;
-                zip_t* zip = zip_open(archive.string().c_str(), ZIP_RDONLY, &error);
-                if (!zip) {
-                    zip_error_t ze;
-                    zip_error_init_with_code(&ze, error);
-                    errorStr = std::format("Failed to open ZIP: {}", zip_error_strerror(&ze) );
-                    zip_error_fini(&ze);
-                    _processInfo.on_error(errorStr);
-                    return false;
-                }
-
-                std::error_code ec;
-                std::filesystem::create_directories(destination, ec);
-                if (ec) {
-                    errorStr = std::format("Failed to create destination: {}", ec.message()  );
-                    zip_close(zip);
-                    _processInfo.on_error(errorStr);
-                    return false;
-                }
-
-                bool success = true;
-                for (zip_int64_t i = 0; i < zip_get_num_entries(zip, 0); ++i) {
-                    const char* name = zip_get_name(zip, i, 0);
-                    if (!name) {
-                        success = false;
-                        break;
-                    }
-                    std::filesystem::path relative(name);
-                    if (relative.is_absolute() || relative.has_root_name()) {
-                        success = false;
-                        break;
-                    }
-                    for (const auto& part : relative) {
-                        if (part == "..") {
-                            success = false;
-                            break;
-                        }
-                    }
-                    if (!success) break;
-
-                    std::filesystem::path output = destination / relative;
-                    if (name[0] == '\0') continue;
-                    if (relative.filename().empty()) {
-                        std::filesystem::create_directories(output, ec);
-                        if (ec) {
-                            success = false;
-                            break;
-                        }
-                        continue;
-                    }
-                    std::filesystem::create_directories(output.parent_path(), ec);
-                    if (ec) {
-                        success = false;
-                        break;
-                    }
-                    zip_file_t* file = zip_fopen_index(zip, i, 0);
-                    if (!file) {
-                        success = false;
-                        break;
-                    }
-                    FILE* out = nullptr;
-            #ifdef _WIN32
-                    _wfopen_s(&out, output.c_str(), L"wb");
-            #else
-                    out = std::fopen(output.c_str(), "wb");
-            #endif
-                    if (!out) {
-                        zip_fclose(file);
-                        success = false;
-                        break;
-                    }
-                    char buffer[8192];
-                    zip_int64_t bytes;
-                    while ((bytes = zip_fread(file, buffer, sizeof(buffer))) > 0) {
-                        if (std::fwrite(buffer, 1, static_cast<size_t>(bytes), out)
-                            != static_cast<size_t>(bytes)) {
-                            success = false;
-                            break;
-                        }
-                    }
-                    if (bytes < 0) success = false;
-                    std::fclose(out);
-                    zip_fclose(file);
-                    if (!success) break;
-                }
-                zip_close(zip);
-                return success;
-            }
-        
-            static std::string sha256(std::string_view data) {
-                std::string hash256_hex;
-                picosha2::hash256_hex_string(data.begin(), data.end(), hash256_hex);
-                return hash256_hex;
-            }
-
             static constexpr size_t kMaxDownloadSize = 256ull * 1024 * 1024; 
             static size_t write_to_vector(void* ptr, size_t size, size_t nmemb, void* userdata) {
                 auto* buffer = static_cast<std::vector<uint8_t>*>(userdata);
@@ -135,7 +37,7 @@ namespace RexGlueSuite {
                 return 0;
             }
 
-            static bool Download(std::string url, std::string hash, ProcessInfo _processInfo, std::atomic<uint64_t>& _extractedBytes, std::atomic<uint64_t>& _fullSize)
+            static bool Download(std::string url, std::string hash, const ProcessInfo _processInfo, std::atomic<uint64_t>& _extractedBytes, std::atomic<uint64_t>& _fullSize)
             {
                 CURL* curl = curl_easy_init();
                 if (!curl){
@@ -184,12 +86,14 @@ namespace RexGlueSuite {
                     return false;
                 }
 
-                const std::string result = sha256(std::string_view(reinterpret_cast<const char*>(bytes.data()),bytes.size()));
-                if (result != hash) {
-                    _processInfo.on_error(std::format("[rexglue_suite_downloader] SHA-256 mismatch. Target={}, Result={}", hash, result));
-                    return false;
+                if(!hash.empty()){
+                    const std::string result = ExtractionRules::sha256(std::string_view(reinterpret_cast<const char*>(bytes.data()),bytes.size()));
+                    if (result != hash) {
+                        REXLOG_ERROR("[rexglue_suite_downloader] SHA-256 mismatch. Target={}, Result={}", hash, result);
+                        return false;
+                    }
+                    REXLOG_INFO("[rexglue_suite_downloader] SHA-256 match. Target={}, Result={}", hash, result);
                 }
-                REXLOG_INFO("[rexglue_suite_downloader] SHA-256 match. Target={}, Result={}", hash, result);
 
                 std::ofstream outFile(_processInfo._basePath, std::ios::binary | std::ios::trunc);
                 if (!outFile) {
@@ -206,9 +110,9 @@ namespace RexGlueSuite {
                 outFile.flush();
                 outFile.close();
 
-                //If it's a zip, extract it.
-                if(_processInfo._basePath.filename().extension() == ".zip" ){
-                    if( !ExtractZipFile(_processInfo._basePath.string(), std::filesystem::path(_processInfo._basePath.parent_path() / ".extracted").string(), _processInfo ) ){
+                //If it's a zip, extract it only if it's not an update.
+                if( _processInfo._basePath.filename().extension() == ".zip" && _processInfo._basePath.stem().string() != "pendingUpdate" ){
+                    if( !ZipExtractor::ExtractZipFile(_processInfo._basePath.string(), std::filesystem::path(_processInfo._basePath.parent_path() / ".extracted").string(), _processInfo ) ){
                         return false;
                     }
                 }
@@ -216,7 +120,7 @@ namespace RexGlueSuite {
                 return true;
             }
 
-            static std::thread NewThread(std::string url, std::string hash, std::atomic<uint64_t>& _extractedBytes, std::atomic<uint64_t>& _fullSize, ProcessInfo _processInfo){
+            static std::thread NewThread(std::string url, std::string hash, std::atomic<uint64_t>& _extractedBytes, std::atomic<uint64_t>& _fullSize, const ProcessInfo _processInfo){
                 return std::thread (Download, url, hash, _processInfo, std::ref(_extractedBytes), std::ref(_fullSize)); 
             }
     };

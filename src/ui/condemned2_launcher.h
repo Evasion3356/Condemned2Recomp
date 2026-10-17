@@ -6,7 +6,6 @@
 
 #include <rex/rex_app.h>
 #include <rex/cvar.h>
-
 #include <imgui.h> 
 #include <rex/ui/imgui_dialog.h>
 #include <rex/ui/imgui_drawer.h>
@@ -17,7 +16,15 @@
 #include <unordered_map>
 #include <format>
 #include <fstream>
+#include <cstdint>
+#if defined(_WIN32)
+  #include <windows.h>
+#elif defined(__linux__)
+  #include <unistd.h>
+#endif
 
+
+#include <nlohmann/json.hpp>
 #include <suite/file_dialog.h>
 #include <suite/xdvdfs_extractor.h>
 #include <suite/title_updater.h>
@@ -65,16 +72,21 @@ namespace Condemned2 {
         BMSExtract01, // Run QuickBMS to extract
         BMSExtract02, // Run QuickBMS to extract
         BMSFinish, //Notifies user of completion and edits config
+        //Update
+        UpdateMain, // Notifies user of an update!
+        UpdateDownload, // Downloads update for game.
+        UpdateFinish, // Starts updater, ends the game, updates.
         //Menus
         PCMenu, // Separate PC only menu
         PCSettings, //Adjusts PC game settings
         PCGameSettings, //Adjusts game settings
         PCGraphics, //Adjusts graphics settings
         PCInput, //Adjust input settings
-        //Errors
+        //Errors ( Fission Mailed )
         ISOFailed, // Iso extraction failed, user can retry or quit
         TUFailed, // Title update download or extraction failed, user can retry or quit
         FEFailed, // Full extraction failed, user can retry or quit
+        UpdateFailed, // Game update download failed, user can retry, skip, or quit.
         //End states
         Exit, // Quits application
         Complete, // Resumes to game
@@ -87,7 +99,7 @@ namespace Condemned2 {
         LauncherState skipState = LauncherState::None;
 
         std::string header = "Recompilation";
-        std::string body;
+        std::string body = "";
         std::string nextBtnLabel = "Next";
         std::string skipBtnLabel = "Skip";
 
@@ -99,9 +111,8 @@ namespace Condemned2 {
         bool customOnly = false;
       };
 
-      GameLauncherDialog(rex::ui::ImGuiDrawer* drawer, const rex::PathConfig& defaults, std::function<void(rex::PathConfig)> resume, std::function<void()> onClose, rex::ui::WindowedAppContext* ctx, std::unordered_map<std::string, ImFont*> loadedFonts, LauncherState startState = LauncherState::Intro)
-        : ImGuiDialog(drawer), _paths(defaults), _resume(std::move(resume)), _onClose(std::move(onClose)), _app_context(ctx), _loadedFonts(loadedFonts) {
-        curState = startState;
+      GameLauncherDialog(rex::ui::ImGuiDrawer* drawer, const rex::PathConfig& defaults, std::function<void(rex::PathConfig)> resume, std::function<void()> onClose, rex::ui::WindowedAppContext* ctx, nlohmann::json json, std::unordered_map<std::string, ImFont*> loadedFonts, LauncherState startState = LauncherState::Intro)
+        : ImGuiDialog(drawer), _paths(defaults), _resume(std::move(resume)), _onClose(std::move(onClose)), _app_context(ctx), _currentJson(json), _loadedFonts(loadedFonts) {
         //Intro Dialog
         LauncherDialog Intro;
         Intro.nextState = LauncherState::IsoSelect;
@@ -305,6 +316,62 @@ namespace Condemned2 {
         BMSFinish.onStart = [&](){FinishInstallation(true);};
         stateTable[LauncherState::BMSFinish] = BMSFinish;
 
+        //Game Update (optional)
+        std::string latestVersion = _currentJson.value("tag_name", "unknown");
+        std::string latestBody = _currentJson.value("body", "unknown");
+        LauncherDialog UpdateMain;
+        UpdateMain.windowSize = ImVec2(1024, 768);
+        UpdateMain.nextState = LauncherState::UpdateDownload;
+        UpdateMain.skipState = LauncherState::Complete;
+        UpdateMain.header = "New Version Available";
+        UpdateMain.body = std::format("Changelog (v{})", latestVersion );
+        UpdateMain.nextBtnLabel = "Update";
+        UpdateMain.hasLog = true;
+        UpdateMain.onStart =  [this, latestBody]() {
+          ClearLog();
+          SetLog(latestBody);
+        };
+        stateTable[LauncherState::UpdateMain] = UpdateMain;
+
+        LauncherDialog UpdateDownload;
+        UpdateDownload.header = "Downloading Update";
+        UpdateDownload.body = "Please wait while the latest update downloads...";
+        UpdateDownload.windowSize = ImVec2(640, 120);
+        UpdateDownload.hasProgressBar = true;
+        UpdateDownload.onStart = [&](){
+          const auto& assets = _currentJson["assets"];
+          const auto& asset = assets[0];
+          std::string digest = asset.value("digest", "");
+          auto pos = digest.find(':');
+          std::string hash = (pos == std::string::npos) ? digest : digest.substr(pos + 1);
+          std::string url  = asset.value("browser_download_url", "");
+          _workPath = _paths.config_path.parent_path() / "pendingUpdate.zip";
+          REXLOG_INFO("[GameLauncherDialog] {} {}", hash, url);
+          workerThread = RexGlueSuite::Downloader::NewThread(url, hash, _copiedBytes, _fullSize, {
+            _workPath, 
+            [&]() {pendingState = LauncherState::UpdateFinish;}, 
+            [&](std::string err) {
+              SetError( std::move(err) ); 
+              pendingState = LauncherState::UpdateFailed;
+            }
+          });
+        };
+        stateTable[LauncherState::UpdateDownload] = UpdateDownload;
+
+        LauncherDialog UpdateFinish;
+        UpdateFinish.onStart = [&](){
+          std::filesystem::path newExe = _paths.config_path.parent_path() / "condemned2recomp_updater.exe";
+          RexGlueSuite::ProcessRunner::NewThreadDetached(_paths.config_path.parent_path() / "condemned2recomp_updater.exe", 
+            {"--pid", std::to_string(current_pid())},{
+              _paths.config_path.parent_path(),
+              [](){}, // on_success
+              [this](std::string err){ this->SetError(std::move(err)); } 
+            }
+          );
+          _app_context->QuitFromUIThread();
+        };
+        stateTable[LauncherState::UpdateFinish] = UpdateFinish;
+
         //Error Dialogs
         LauncherDialog ISOFailed;
         ISOFailed.nextState = LauncherState::IsoSelect;
@@ -334,6 +401,16 @@ namespace Condemned2 {
         FEFailed.showError = true;
         stateTable[LauncherState::FEFailed] = FEFailed;
 
+        LauncherDialog UpdateFailed;
+        UpdateFailed.nextState = LauncherState::UpdateMain;
+        UpdateFailed.skipState = LauncherState::Complete;
+        UpdateFailed.header = "Update Failed";
+        UpdateFailed.body = "Update for Condemned2Recomp failed!!! Please check the latest log for more information!!!";
+        UpdateFailed.nextBtnLabel = "Retry";
+        UpdateFailed.windowSize = ImVec2(640, 160);
+        UpdateFailed.showError = true;
+        stateTable[LauncherState::UpdateFailed] = UpdateFailed;
+
         //PC Menus
         LauncherDialog PCMenu;
         PCMenu.customOnly = true;
@@ -352,18 +429,28 @@ namespace Condemned2 {
 
         //End States
         LauncherDialog stepExit;
+        stepExit.customOnly = true;
         stepExit.onStart = [&](){
           _app_context->QuitFromUIThread();
         };
         stateTable[LauncherState::Exit] = stepExit;
 
         LauncherDialog stepComplete;
+        stepComplete.customOnly = true;
         stepComplete.onStart = [&](){FinishInstallation();};
         stateTable[LauncherState::Complete] = stepComplete;
 
         //Create temp folder for extractions and downloads.
         _tempPath = defaults.cache_root / ".temp";
         std::filesystem::create_directories(_tempPath);
+
+        //Set starting state
+        pendingState = startState;
+
+        //If json is provided, assume it's an update.
+        if (!json.is_null()) {
+          pendingState = LauncherState::UpdateMain;
+        }
       }
 
       ~GameLauncherDialog(){
@@ -397,7 +484,6 @@ namespace Condemned2 {
               std::ofstream file(archCfg);
               file << "d:\\Game\n";
             }
-
             const auto layer01 = _paths.game_data_root / "Layer01.arch02";
             const auto layer02 = _paths.game_data_root / "Layer02.arch02";
             if (std::filesystem::exists(layer01)) {
@@ -502,8 +588,10 @@ namespace Condemned2 {
         ImGui::EndChild();
   
         //Draw custom controls only
-        if(newStep.customOnly && newStep.onDraw){
-          newStep.onDraw(io);
+        if(newStep.customOnly){
+          if(newStep.onDraw){
+            newStep.onDraw(io);
+          }
           return;
         }
 
@@ -552,17 +640,15 @@ namespace Condemned2 {
         //Menu Commands
         if( newStep.hasButtons && !newStep.hasProgressBar){
           bool useSkip = newStep.skipState != LauncherState::None;
-          int btnWidth = ImGui::GetContentRegionAvail().x * 0.495f;
+          int btnWidth = ImGui::GetContentRegionAvail().x * 0.499f;
           if ( useSkip ){
-            btnWidth = ImGui::GetContentRegionAvail().x * 0.325f;
+            btnWidth = ImGui::GetContentRegionAvail().x * 0.329f;
           }
-          if ( !newStep.nextBtnLabel.empty() ){
-            if (UIWidgets::AddButton(newStep.nextBtnLabel.c_str(), _loadedFonts["ZTNature-Black"], ImVec2(btnWidth, 64))) {
-              pendingState = newStep.nextState;
-            }          
+          if (UIWidgets::AddButton(newStep.nextBtnLabel.c_str(), _loadedFonts["ZTNature-Black"], ImVec2(btnWidth, 64))) {
+            pendingState = newStep.nextState;
           }
-          ImGui::SameLine();
           if ( useSkip ){
+            ImGui::SameLine();
             if (UIWidgets::AddButton(newStep.skipBtnLabel.c_str(), _loadedFonts["ZTNature-Black"], ImVec2(btnWidth, 64))) {
               pendingState = newStep.skipState;
             }          
@@ -683,10 +769,23 @@ namespace Condemned2 {
         ImGui::PopStyleVar();
       }
 
+      //Used for the updater!!!
+      uint64_t current_pid()
+      {
+      #if defined(_WIN32)
+          return static_cast<uint64_t>(GetCurrentProcessId());
+      #elif defined(__linux__)
+          return static_cast<uint64_t>(getpid());
+      #else
+          return 0;
+      #endif
+      }
+
       private:
         LauncherState curState = LauncherState::Intro;
         std::atomic<LauncherState> pendingState{LauncherState::None};
         std::unordered_map<LauncherState, LauncherDialog> stateTable;
+        nlohmann::json _currentJson;
 
         std::thread workerThread;
         std::function<void(rex::PathConfig)> _resume;

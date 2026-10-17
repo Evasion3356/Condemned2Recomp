@@ -8,30 +8,26 @@
 #include <rex/cvar.h>
 #include <rex/input/input_system.h>
 #include <rex/ui/keybinds.h>
-
 #include <iostream>
 #include <string>
 #include <unordered_map>
 #include <format>
-
 #if REX_PLATFORM_WIN32
   #include <timeapi.h>
 #endif  // REX_PLATFORM_WIN32
-
+#include <nlohmann/json.hpp>
 #include <condemned2_hooks.h>
 #include <condemned2_settings.h>
 #include <condemned2_graphics.h>
 #include <condemned2_input.h>
 #include <condemned2_cheats.h>
-
+#include <suite/curl_getter.h>
 #include <ui/condemned2_launcher.h>
 
 namespace Condemned2 {
-
     class Condemned2recompApp : public rex::ReXApp {
         public:
             using rex::ReXApp::ReXApp;
-
             static std::unique_ptr<rex::ui::WindowedApp> Create(
                 rex::ui::WindowedAppContext& ctx) {
                 return std::unique_ptr<Condemned2recompApp>(new Condemned2recompApp(ctx, "condemned2recomp", PPCImageConfig));
@@ -79,18 +75,38 @@ namespace Condemned2 {
                 return true;
             }
 
+            bool RequiresUpdate( nlohmann::json parsedJson ){
+                //Get the latest version, compare to saved cvar of it!
+                std::string currentVersion = rex::cvar::GetFlagByName("condemned2_app_version");
+                std::string latestVersion = parsedJson.value("tag_name", "unknown");
+                if(currentVersion != latestVersion && latestVersion != "unknown"){
+                    REXLOG_INFO("[Condemned2recompApp] Old version: {} | New version found: {}", currentVersion, latestVersion);
+                    return true;
+                }
+                return false;
+            }
+
             std::optional<rex::PathConfig> OnFinalizePaths(const rex::PathConfig& defaults, std::function<void(rex::PathConfig)> resume) override {
                 defaultPaths = defaults;
                 Condemned2Settings::InitializeSettings(defaultPaths, window());
-                if (!IsInstalled()) {
-                    app_context().CallInUIThreadDeferred([this, resume = std::move(resume)]() mutable {
+
+                //Pass null if not installed, otherwise pass the entire get.
+                bool requiresLauncher = !IsInstalled();
+                nlohmann::json parsedJson = nlohmann::json(nullptr);
+                if(!requiresLauncher){
+                    std::string rawJson = RexGlueSuite::CurlGetter::GetJson("https://api.github.com/repos/psxrestore/condemned2recomp/releases/latest");
+                    parsedJson = nlohmann::json::parse(rawJson);
+                    requiresLauncher = RequiresUpdate(parsedJson);
+                }
+                if (requiresLauncher) {
+                    app_context().CallInUIThreadDeferred([this, parsedJson, resume = std::move(resume)]() mutable {
                         _launcherDialog = std::make_unique<GameLauncherDialog>(imgui_drawer(), defaultPaths, std::move(resume), [this]() {
                             app_context().CallInUIThreadDeferred([this]() {
                                 if (_launcherDialog ) {
                                     _launcherDialog.reset();
                                 }
                             });
-                        }, &app_context(), loadedFonts);
+                        }, &app_context(), parsedJson, loadedFonts);
                     });
                     return std::nullopt;
                 }
@@ -121,7 +137,7 @@ namespace Condemned2 {
                                         _launcherDialog.reset();
                                     }
                                 });
-                            }, &app_context(), loadedFonts, GameLauncherDialog::LauncherState::PCMenu);
+                            }, &app_context(), nlohmann::json(nullptr), loadedFonts, GameLauncherDialog::LauncherState::PCMenu);
                         }
                     });
                 });*/

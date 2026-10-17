@@ -8,14 +8,12 @@
 #include <rex/filesystem/entry.h>
 #include <rex/filesystem/file.h>
 #include <rex/system/xtypes.h>
-
 #include <cstdio>
 #include <filesystem>
 #include <fstream>
 #include <iostream>
 #include <vector>
 #include <unordered_set>
-
 #include <suite/extraction_rules.h>
 
 using namespace rex::filesystem;
@@ -102,7 +100,7 @@ namespace RexGlueSuite {
                         continue;
                     }
 
-                    if (!ExtractionRules::IsPathSafe(d.fullPath, std::nullopt, "rexglue_suite_title_updater")) {
+                    if (!ExtractionRules::IsPathSafe(d.fullPath)) {
                         _success = false;
                         continue;
                     }
@@ -118,7 +116,7 @@ namespace RexGlueSuite {
                         rex::filesystem::Entry *childEntry = child.get();
                         if(childEntry){
                             std::filesystem::path child_out = d.fullPath / child->name();
-                            if (!ExtractionRules::IsPathSafe(child_out, std::nullopt, "rexglue_suite_title_updater")) {
+                            if (!ExtractionRules::IsPathSafe(child_out)) {
                                 _success = false;
                                 continue;
                             }
