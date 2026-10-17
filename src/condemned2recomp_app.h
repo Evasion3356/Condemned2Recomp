@@ -91,8 +91,9 @@ namespace Condemned2 {
 
                 //Pass null if not installed, otherwise pass the entire get.
                 bool requiresLauncher = !IsInstalled();
+                std::string hasAutoUpdate = rex::cvar::GetFlagByName("condemned2_auto_updater");
                 nlohmann::json parsedJson = nlohmann::json(nullptr);
-                if(!requiresLauncher){
+                if(!requiresLauncher && hasAutoUpdate == "true"){
                     std::string rawJson = RexGlueSuite::CurlGetter::GetJson("https://api.github.com/repos/psxrestore/condemned2recomp/releases/latest");
                     parsedJson = nlohmann::json::parse(rawJson);
                     requiresLauncher = RequiresUpdate(parsedJson);

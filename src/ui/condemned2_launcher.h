@@ -32,6 +32,8 @@
 #include <suite/process_runner.h>
 #include <ui/condemned2_widgets.h>
 
+REXCVAR_DEFINE_BOOL(condemned2_auto_updater, true,"Condemned 2/Launcher", "Toggles auto-updates for Condemned2Recomp");
+
 REXCVAR_DEFINE_STRING(condemned2_tu_patch_dl_link, "https://xboxunity.net/Resources/Lib/TitleUpdate.php?tuid=21001", "Condemned 2", "Title Update Download Link").lifecycle(rex::cvar::Lifecycle::kInitOnly);
 REXCVAR_DEFINE_STRING(condemned2_tu_patch_filename, "TU_19KA1VF_0000004000000.00000000000G1", "Condemned 2", "Title Update Filename").lifecycle(rex::cvar::Lifecycle::kInitOnly);
 REXCVAR_DEFINE_STRING(condemned2_tu_patch_hash, "1ce63d845307c18873b737c4cb6d0ed0622e994aaa6d24ab14654530061e12be", "Condemned 2", "Title Update Hash").lifecycle(rex::cvar::Lifecycle::kInitOnly);
