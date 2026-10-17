@@ -640,9 +640,9 @@ namespace Condemned2 {
         //Menu Commands
         if( newStep.hasButtons && !newStep.hasProgressBar){
           bool useSkip = newStep.skipState != LauncherState::None;
-          int btnWidth = ImGui::GetContentRegionAvail().x * 0.499f;
+          int btnWidth = ImGui::GetContentRegionAvail().x * 0.496f;
           if ( useSkip ){
-            btnWidth = ImGui::GetContentRegionAvail().x * 0.329f;
+            btnWidth = ImGui::GetContentRegionAvail().x * 0.328f;
           }
           if (UIWidgets::AddButton(newStep.nextBtnLabel.c_str(), _loadedFonts["ZTNature-Black"], ImVec2(btnWidth, 64))) {
             pendingState = newStep.nextState;
