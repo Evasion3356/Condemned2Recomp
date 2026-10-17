@@ -317,8 +317,8 @@ namespace Condemned2 {
         stateTable[LauncherState::BMSFinish] = BMSFinish;
 
         //Game Update (optional)
-        std::string latestVersion = _currentJson.value("tag_name", "unknown");
-        std::string latestBody = _currentJson.value("body", "unknown");
+        std::string latestVersion = RexGlueSuite::CurlGetter::JsonStringOr(_currentJson, "tag_name", "unknown");
+        std::string latestBody = RexGlueSuite::CurlGetter::JsonStringOr(_currentJson, "body", "unknown");
         LauncherDialog UpdateMain;
         UpdateMain.windowSize = ImVec2(1024, 768);
         UpdateMain.nextState = LauncherState::UpdateDownload;
@@ -341,10 +341,10 @@ namespace Condemned2 {
         UpdateDownload.onStart = [&](){
           const auto& assets = _currentJson["assets"];
           const auto& asset = assets[0];
-          std::string digest = asset.value("digest", "");
+          std::string digest = RexGlueSuite::CurlGetter::JsonStringOr(asset, "digest", "");
           auto pos = digest.find(':');
           std::string hash = (pos == std::string::npos) ? digest : digest.substr(pos + 1);
-          std::string url  = asset.value("browser_download_url", "");
+          std::string url  = RexGlueSuite::CurlGetter::JsonStringOr(asset, "browser_download_url", "");
           _workPath = _paths.config_path.parent_path() / "pendingUpdate.zip";
           REXLOG_INFO("[GameLauncherDialog] {} {}", hash, url);
           workerThread = RexGlueSuite::Downloader::NewThread(url, hash, _copiedBytes, _fullSize, {

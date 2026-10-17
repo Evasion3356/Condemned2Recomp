@@ -77,7 +77,7 @@ namespace Condemned2 {
             bool RequiresUpdate( nlohmann::json parsedJson ){
                 //Get the latest version, compare to saved cvar of it!
                 std::string currentVersion = rex::cvar::GetFlagByName("condemned2_app_version");
-                std::string latestVersion = parsedJson.value("tag_name", "unknown");
+                std::string latestVersion = RexGlueSuite::CurlGetter::JsonStringOr(parsedJson, "tag_name", "");
                 if(currentVersion != latestVersion && latestVersion != "unknown"){
                     REXLOG_INFO("[Condemned2recompApp] Old version: {} | New version found: {}", currentVersion, latestVersion);
                     return true;
