@@ -60,6 +60,7 @@ namespace rex::input::condemned2input{
          Bind ParseBind(const std::string& s);
          bool IsDown(const Bind &b);
          bool Pressed(Bind& b);
+         void Held(Bind& b, std::vector<int32_t> keycodes, bool down = false, bool pressed = false);
          void NativeKeyPress(int32_t keycode, bool release = false);
          std::unordered_map<std::string, Bind> GetActiveBinds() { return activeBinds; }
 
@@ -77,17 +78,11 @@ namespace rex::input::condemned2input{
          void SetMeleeControls( bool enabled ) { hasMeleeWeapon = enabled; }
          void SetMenuMode( bool enabled ) { isInMenu = enabled; }
          void SetPCControls( bool enabled ) { isUsingPCControls = enabled; }
-         void SetSprinting( bool enabled ) { isSprinting = enabled; }
-         void SetToolSelection( bool enabled ) { isSelectingTool = enabled; }
-         void SetShowObjectives( bool enabled ) { showingObjectives = enabled; }
 
          bool IsUsingTuningControls() { return isTuning; }
          bool IsUsingMeleeWeapon() { return hasMeleeWeapon; }
          bool IsInMenu() { return isInMenu; }
          bool IsUsingPCControls() { return isUsingPCControls; }
-         bool IsSprinting() { return isSprinting;}
-         bool IsSelectingTool() { return isSelectingTool;}
-         bool IsShowObjectives() { return showingObjectives;}
 
       private:
          uint32_t packet_number_ = 0;
@@ -116,9 +111,6 @@ namespace rex::input::condemned2input{
          //Custom input
          bool blockFirstFrame = false;
          bool hasMeleeWeapon = false;
-         bool isSprinting = false;
-         bool isSelectingTool = false;
-         bool showingObjectives = false;
          double move_dx;
          double move_dy;
          MouseBind mouse_clicks;
@@ -148,7 +140,7 @@ namespace rex::input::condemned2input{
             "condemned2_input_objectives",
             "condemned2_input_tool_take_picture",
             "condemned2_input_zoom",
-            "condemned2_input_combo_attacks",
+            "condemned2_input_hook_attacks",
          };
    };
 

@@ -35,12 +35,12 @@ REXCVAR_DEFINE_STRING(condemned2_input_walk, "Left Alt, Right Alt", "Condemned 2
 REXCVAR_DEFINE_STRING(condemned2_input_primary_fire, "Mouse1", "Condemned 2/Input/Keyboard", "Swing Left/Primary Fire");
 REXCVAR_DEFINE_STRING(condemned2_input_secondary_fire, "Mouse2", "Condemned 2/Input/Keyboard", "Swing Right/Secondary Fire");
 REXCVAR_DEFINE_STRING(condemned2_input_block_alt, "Mouse3", "Condemned 2/Input/Keyboard", "Block (alt)");
+REXCVAR_DEFINE_STRING(condemned2_input_hook_attacks, "Q", "Condemned 2/Input/Keyboard", "Hook Attacks");
 REXCVAR_DEFINE_STRING(condemned2_input_kick, "Space", "Condemned 2/Input/Keyboard", "Kick");
 
 REXCVAR_DEFINE_STRING(condemned2_input_taser, "T", "Condemned 2/Input/Keyboard", "Taser");
 REXCVAR_DEFINE_STRING(condemned2_input_throw, "G", "Condemned 2/Input/Keyboard", "Throw Item/Weapon");
 REXCVAR_DEFINE_STRING(condemned2_input_drop, "B", "Condemned 2/Input/Keyboard", "Drop Item/Weapon");
-REXCVAR_DEFINE_STRING(condemned2_input_combo_attacks, "Q", "Condemned 2/Input/Keyboard", "Combo Attacks");
 
 REXCVAR_DEFINE_STRING(condemned2_input_forensics, "R", "Condemned 2/Input/Keyboard", "Investigate/Use Forensic Tools");
 REXCVAR_DEFINE_STRING(condemned2_input_tool_uv, "1", "Condemned 2/Input/Keyboard", "UV Light");
@@ -253,30 +253,19 @@ namespace rex::input::condemned2input {
       }
     }
 
-         //Left Stick/Movement
+    //Left Stick/Movement
     double lx = 0;
     double ly = 0;
     double moveScale = 1;
     if(IsDown(activeBinds["condemned2_input_walk"])){ // Walk
       moveScale = 0.5;
+    }else{ //buttons |= X_INPUT_GAMEPAD_LEFT_SHOULDER
+      Held(activeBinds["condemned2_input_sprint"], {0x10} );
     }
-    bool sprinting = IsDown(activeBinds["condemned2_input_sprint"]) && (moveScale == 1);
-    if(sprinting){ //buttons |= X_INPUT_GAMEPAD_LEFT_SHOULDER
-      NativeKeyPress(0x10);
-    }
-    SetSprinting(sprinting);
-    if(IsDown(activeBinds["condemned2_input_move_forward"])){
-      ly = moveScale;
-    }
-    if(IsDown(activeBinds["condemned2_input_move_backward"])){
-      ly = -moveScale;
-    }
-    if(IsDown(activeBinds["condemned2_input_move_right"])){
-      lx = moveScale;
-    }  
-    if(IsDown(activeBinds["condemned2_input_move_left"])){
-      lx = -moveScale;
-    }
+    if(IsDown(activeBinds["condemned2_input_move_forward"])) ly = moveScale;
+    if(IsDown(activeBinds["condemned2_input_move_backward"])) ly = -moveScale;
+    if(IsDown(activeBinds["condemned2_input_move_right"])) lx = moveScale;
+    if(IsDown(activeBinds["condemned2_input_move_left"])) lx = -moveScale;
     move_dx = lx;
     move_dy = ly;
     
@@ -302,6 +291,7 @@ namespace rex::input::condemned2input {
       NativeKeyPress(0x11);
       NativeKeyPress(0x7a);
       NativeKeyPress(0xbc);
+      NativeKeyPress(0x65); // Cancel investigation
     }
 
     //Mouse wheel events
@@ -332,32 +322,11 @@ namespace rex::input::condemned2input {
     // Native PC Controls
     // UI Controls
     // Navigation
-    if((!IsDown(activeBinds["menu_nav_up"]) || wheelY == 0.0f ) && activeBinds["menu_nav_up"].prev ){
-      NativeKeyPress(0x82, true);
-    }
-    if((!IsDown(activeBinds["menu_nav_down"]) || wheelY == 0.0f ) && activeBinds["menu_nav_down"].prev ){
-      NativeKeyPress(0x83, true);
-    }
-    if((!IsDown(activeBinds["menu_nav_left"]) && activeBinds["menu_nav_left"].prev) ){
-      NativeKeyPress(0x84, true);
-    }
-    if((!IsDown(activeBinds["menu_nav_right"]) && activeBinds["menu_nav_right"].prev) ){
-      NativeKeyPress(0x85, true);
-    }
-    if(Pressed(activeBinds["menu_nav_up"]) || wheelY > 0.0f ){
-      NativeKeyPress(0x82);
-      activeBinds["menu_nav_up"].prev = true;
-    } 
-    if(Pressed(activeBinds["menu_nav_down"]) || wheelY < 0.0f){
-      NativeKeyPress(0x83);
-      activeBinds["menu_nav_down"].prev = true;
-    }
-    if(Pressed(activeBinds["menu_nav_left"]) ){
-      NativeKeyPress(0x84);
-    }
-    if(Pressed(activeBinds["menu_nav_right"]) ){
-      NativeKeyPress(0x85);
-    }
+    Held(activeBinds["menu_nav_up"], {0x82}, wheelY == 0.0f, wheelY > 0.0f);
+    Held(activeBinds["menu_nav_down"], {0x83}, wheelY == 0.0f, wheelY < 0.0f);
+    Held(activeBinds["menu_nav_left"], {0x84} );
+    Held(activeBinds["menu_nav_right"], {0x85} );
+
     if(Pressed(activeBinds["menu_category_left"]) ){ //buttons |= X_INPUT_GAMEPAD_LEFT_SHOULDER
       //NativeKeyPress(0x84);
       NativeKeyPress(0x8d);
@@ -413,35 +382,14 @@ namespace rex::input::condemned2input {
     if(Pressed(activeBinds["condemned2_input_taser"])){ //buttons |= X_INPUT_GAMEPAD_DPAD_UP
       NativeKeyPress(0x3e);
     }
-    if(IsDown(activeBinds["condemned2_input_zoom"])){
-      NativeKeyPress(0x8b);
-    }
+    Held(activeBinds["condemned2_input_hook_attacks"], {0x42, 0xa8} );
+    Held(activeBinds["condemned2_input_objectives"], {0x4f, 0x4e} );
+    Held(activeBinds["condemned2_input_forensics"], {0x74, 0x71} );
     if(Pressed(activeBinds["condemned2_input_tool_take_picture"])){
       NativeKeyPress(0xb9);
     }
-    if(IsDown(activeBinds["condemned2_input_combo_attacks"])){
-      NativeKeyPress(0x42);
-      NativeKeyPress(0xa8);
-    }
-    if(Pressed(activeBinds["condemned2_input_objectives"])){ //buttons |= X_INPUT_GAMEPAD_BACK;
-      NativeKeyPress(0x4f);
-      NativeKeyPress(0x4e);
-      SetShowObjectives(true);
-    }else if(!IsDown(activeBinds["condemned2_input_objectives"]) && IsShowObjectives()){ 
-      NativeKeyPress(0x4f, true);
-      NativeKeyPress(0x4e, true);
-      SetShowObjectives(false);
-    }
-
-    // Forensic Tools
-    if(Pressed(activeBinds["condemned2_input_forensics"])){ // Initial forensic tool selection
-      NativeKeyPress(0x74);
-      NativeKeyPress(0x71);
-      SetToolSelection(true);
-    }else if(!IsDown(activeBinds["condemned2_input_forensics"]) && IsSelectingTool()){ // No longer selecting a forensic tool
-      NativeKeyPress(0x70);
-      NativeKeyPress(0x74);
-      SetToolSelection(false);
+    if(IsDown(activeBinds["condemned2_input_zoom"])){
+      NativeKeyPress(0x8b);
     }
 
     // Quick-swap (Custom controls)
@@ -517,6 +465,20 @@ namespace rex::input::condemned2input {
     return edge;
   }
 
+  void Condemned2InputDriver::Held(Bind& b, std::vector<int32_t> keycodes, bool down, bool pressed) {
+    if((!IsDown(b) || down ) && b.prev){
+      for (int32_t k : keycodes) {
+        NativeKeyPress(k, true);
+      }
+    }
+    if(Pressed(b) || pressed ){
+      for (int32_t k : keycodes) {
+        NativeKeyPress(k);
+      }
+      b.prev = true;
+    } 
+  }
+
   // Native key presses in Condemned 2!
   void Condemned2InputDriver::NativeKeyPress(int32_t keycode, bool release ){
     PressBind(kInputManager, keycode);
@@ -559,14 +521,10 @@ namespace rex::input::condemned2input {
         return 1.0;
       }
     }
-    else if (btn == 0x79){ // Right click
+    else if (btn == 0x79 || btn == 0x47){ // Left click
       return mouseClick.isMouseLeft;
-    }else if (btn == 0x65){ // Right click
+    }else if (btn == 0x7a || btn == 0x65){ // Right click
       return mouseClick.isMouseRight;
-    }else if (btn == 0x47){ // Left click
-      return mouseClick.isMouseLeft;
-    }else if (btn == 0x7a){ // Block
-      return ( ( mouseClick.isMouseLeft && mouseClick.isMouseRight ) ? 1.0 : 0.0);
     }
 
     // Radio/TV Antenna Tuning
@@ -617,12 +575,12 @@ namespace rex::input::condemned2input {
       return 0;
 
     //Sprint
-    if( btn == 0x10 && g_condemned2_input_driver->IsSprinting()){
+    if( btn == 0x10 && g_condemned2_input_driver->GetActiveBinds()["condemned2_input_sprint"].prev){
       return 1;
     }
 
     //Is selecting forensic tool
-    if( btn == 0x74 && g_condemned2_input_driver->IsSelectingTool()){
+    if( btn == 0x74 && g_condemned2_input_driver->GetActiveBinds()["condemned2_input_forensics"].prev){
       return 1;
     }
 
