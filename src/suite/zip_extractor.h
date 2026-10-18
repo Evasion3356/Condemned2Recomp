@@ -10,12 +10,15 @@
 #include <filesystem>
 #include <atomic>
 #include <thread>
+#include <algorithm>
+#include <cwctype>
+#include <string>
 #include <suite/extraction_rules.h>
 
 namespace RexGlueSuite {
     class ZipExtractor {
         public:
-            static bool ExtractZipFile(const std::filesystem::path& archive, const std::filesystem::path& destination, ProcessInfo _processInfo )
+            static bool ExtractZipFile(const std::filesystem::path& archive, const std::filesystem::path& destination, ProcessInfo _processInfo, bool ignoreUpdater = false )
             {
                 int error = 0;
                 std::string errorStr;
@@ -57,6 +60,21 @@ namespace RexGlueSuite {
                         }
                     }
                     if (!success) break;
+
+                    //Do not extract the updater.
+                    std::wstring filename = relative.filename().wstring();
+                    std::transform(
+                        filename.begin(),
+                        filename.end(),
+                        filename.begin(),
+                        [](wchar_t ch) {
+                            return static_cast<wchar_t>(std::towlower(ch));
+                        });
+                    if(!ignoreUpdater){
+                        if (filename.find(L"_updater.exe") != std::wstring::npos) {
+                            continue;
+                        }
+                    }
 
                     std::filesystem::path output = destination / relative;
                     if (name[0] == '\0') continue;

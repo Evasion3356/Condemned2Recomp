@@ -39,10 +39,8 @@
     sscanf_s(std::string(v).c_str(), "%dx%d", &width, &height);
     return width >= 1024 && height >= 576; 
 });*/
-REXCVAR_DEFINE_DOUBLE(condemned2_maxfps, 0.0, "Condemned 2/Graphics", "Max FPS ( 0 disables limiter! 144 is the recommended max fps! )");
+REXCVAR_DEFINE_BOOL(condemned2_vsync, false,"Condemned 2/Graphics", "Toggles internal Vsync, separate from Xenos Vsync").lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
 REXCVAR_DEFINE_DOUBLE(condemned2_fov, 1.0, "Condemned 2/Graphics", "Scales the camera's FOV");
-REXCVAR_DEFINE_BOOL(condemned2_vsync, false,"Condemned 2/Graphics", "Toggles internal Vsync, separate from Xenos Vsync");
-REXCVAR_DEFINE_DOUBLE(condemned2_min_frame_rate, 144,"Condemned 2/Graphics", "Sets internal minimum frame rate.");
 REXCVAR_DEFINE_BOOL(condemned2_screen_effects, true, "Condemned 2/Graphics", "Toggles screen effects, such as film grain and bloom.");
 REXCVAR_DEFINE_STRING(condemned2_shadow_quality, "High","Condemned 2/Graphics", "Enhances shadows by allowing more objects to cast shadows!").allowed({"Native", "Low", "Medium", "High"});
 
@@ -66,6 +64,20 @@ namespace rex::graphics::condemned2graphics {
     Condemned2Graphics::~Condemned2Graphics() = default;
 
     void Condemned2Graphics::InitializeGraphics(){
+        _hook->AddInitialHook({"condemned2_fsaa", 0x82925E1C, 0.0f });
+        _hook->AddInitialHook({"condemned2_fsaa_override", 0x82925E34, 0.0f });
+        _hook->AddInitialHook({"condemned2_min_frame_rate", 0x82925E1C, 240.0f });
+        _hook->SendCommandCmd("MaxFPS", 0); //Disable frame limiter
+        _hook->SendCommandCmd("VSyncOnFlip", std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_vsync") ) )  ); //Turn off vsync
+        //_hook->AddInitialHook({"condemned2_far_z", 0x82925E04, 1000.0f });
+        //_hook->AddInitialHook({"condemned2_trilinear", 0x82925DBC, 1.0f });
+        //_hook->AddInitialHook({"condemned2_anisotropic", 0x82925DD4, 1.0f });
+        _hook->AddHook({"condemned2_fov", 0x8209C2AC, 0.01745329238474369f, 0.75f, 1.25f, true }); // Scales default FOV value!
+        rex::cvar::RegisterChangeCallback("condemned2_screen_effects", [&](std::string_view name, std::string_view new_value) {
+            _hook->SendCommandCmd("EnableScreenEffects", std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) );
+        });
+        _hook->SendCommandCmd("EnableScreenEffects", std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_screen_effects") ) ) );
+
         /*rex::cvar::RegisterChangeCallback("condemned2_native_resolution", [&](std::string_view name, std::string_view new_value) {
             _screenResolution = GetScreenResolutionFromString(std::string( new_value ));
         });
@@ -77,29 +89,6 @@ namespace rex::graphics::condemned2graphics {
         });
         _minShadowLOD = GetMinShadowLODFromString(REXCVAR_GET(condemned2_shadow_quality));
         _shadowLOD = GetShadowLODFromString(REXCVAR_GET(condemned2_shadow_quality));
-
-        //First-time only
-        _hook->AddInitialHook({"condemned2_fsaa", 0x82925E1C, 0.0f });
-        _hook->AddInitialHook({"condemned2_fsaa_override", 0x82925E34, 0.0f });
-        //_hook->AddInitialHook({"condemned2_far_z", 0x82925E04, 1000.0f });
-        //_hook->AddInitialHook({"condemned2_trilinear", 0x82925DBC, 1.0f });
-        //_hook->AddInitialHook({"condemned2_anisotropic", 0x82925DD4, 1.0f });
-
-        //Sets on flag callback
-        _hook->AddHook({"condemned2_maxfps", 0x8292864C, 0.0f, 15.0f, 144.0f });
-        _hook->AddHook({"condemned2_fov", 0x8209C2AC, 0.01745329238474369f, 0.75f, 1.25f, true }); // Scales default FOV value!
-        _hook->AddHook({"condemned2_min_frame_rate", 0x8201B97C, 144.0f, 30.0f, 144.0f });
-
-        //Send console commands
-        rex::cvar::RegisterChangeCallback("condemned2_screen_effects", [&](std::string_view name, std::string_view new_value) {
-            _hook->SendCommandCmd("EnableScreenEffects", std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) );
-        });
-        _hook->SendCommandCmd("EnableScreenEffects", std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_screen_effects") ) ) );
-
-        rex::cvar::RegisterChangeCallback("condemned2_vsync", [&](std::string_view name, std::string_view new_value) {
-            _hook->SendCommandCmd("VSyncOnFlip", std::stod( Condemned2::Condemned2Hook::GetSafeString( new_value ) ) );
-        });
-        _hook->SendCommandCmd("VSyncOnFlip", std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_vsync") ) ) );
     }
 
     //Level of Detail
@@ -175,4 +164,7 @@ void Set_Video_Width(PPCRegister& param_1) {
 void Set_Video_Height(PPCRegister& param_1) {
     std::pair<int,int> res = rex::graphics::condemned2graphics::g_condemned2_graphics->GetScreenResolution();
     param_1.s64 = res.second;
+}
+void Unlock_Framerate(PPCRegister& param_1) {
+    param_1.f64 = static_cast<double>(1.0f/240.0f);
 }
