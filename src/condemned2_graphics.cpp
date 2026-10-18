@@ -66,7 +66,6 @@ namespace rex::graphics::condemned2graphics {
     void Condemned2Graphics::InitializeGraphics(){
         _hook->AddInitialHook({"condemned2_fsaa", 0x82925E1C, 0.0f });
         _hook->AddInitialHook({"condemned2_fsaa_override", 0x82925E34, 0.0f });
-        _hook->AddInitialHook({"condemned2_min_frame_rate", 0x82925E1C, 240.0f });
         _hook->SendCommandCmd("MaxFPS", 0); //Disable frame limiter
         _hook->SendCommandCmd("VSyncOnFlip", std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_vsync") ) )  ); //Turn off vsync
         //_hook->AddInitialHook({"condemned2_far_z", 0x82925E04, 1000.0f });
