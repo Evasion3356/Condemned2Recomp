@@ -49,7 +49,6 @@ namespace Condemned2 {
         bool isBundle = g_condemned2_assets->IsAdditionalBundle(p);
         if(g_condemned2_assets->IsAdditionalBundle(p)){
             g_condemned2_assets->SetCurrentBundle(p);
-            g_condemned2_assets->SetLoadingBundle(false);
         }
         __imp__Game_ReadAsset(ctx, base);
 
@@ -86,7 +85,7 @@ namespace Condemned2 {
     REX_HOOK_RAW(Game_LoadExtResource){
         uint32_t self = ctx.r3.u32, name_g = ctx.r4.u32; 
         const char* p = g_condemned2_assets->GetHook()->GetMemory()->TranslateVirtual<const char*>(name_g); 
-        if( g_condemned2_assets->IsResourceLoaded(p) || ( g_condemned2_assets->IsLoadingBundle() && std::strstr(p, "arsenal") == nullptr ) ){
+        if(  g_condemned2_assets->IsLoadingBundle() && ( g_condemned2_assets->IsResourceLoaded(p) || std::strstr(p, "arsenal") == nullptr ) ){
             ctx.r3.u32 = 0;
         }else{
             REXLOG_INFO("[Game_LoadExtResource] this={} lr={:#x} name_address={} name={}", self, ctx.lr, name_g, p);
@@ -103,6 +102,7 @@ namespace Condemned2 {
     REX_HOOK_RAW(Game_ProcessBundle) {
         REXLOG_INFO("[Game_ProcessBundle] lr={:#x}", ctx.lr);
         __imp__Game_ProcessBundle(ctx, base);
+        g_condemned2_assets->SetLoadingBundle(false);
     }
 
     REX_HOOK_RAW(Game_InitWorldModel) {
