@@ -39,7 +39,7 @@
     sscanf_s(std::string(v).c_str(), "%dx%d", &width, &height);
     return width >= 1024 && height >= 576; 
 });*/
-REXCVAR_DEFINE_BOOL(condemned2_vsync, false,"Condemned 2/Graphics", "Toggles internal Vsync, separate from Xenos Vsync").lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
+REXCVAR_DEFINE_BOOL(condemned2_vsync, false, "Condemned 2/Graphics", "Toggles internal Vsync, separate from Xenos Vsync").lifecycle(rex::cvar::Lifecycle::kRequiresRestart);
 REXCVAR_DEFINE_DOUBLE(condemned2_fov, 1.0, "Condemned 2/Graphics", "Scales the camera's FOV");
 REXCVAR_DEFINE_BOOL(condemned2_screen_effects, true, "Condemned 2/Graphics", "Toggles screen effects, such as film grain and bloom.");
 REXCVAR_DEFINE_STRING(condemned2_shadow_quality, "High","Condemned 2/Graphics", "Enhances shadows by allowing more objects to cast shadows!").allowed({"Native", "Low", "Medium", "High"});
@@ -66,7 +66,7 @@ namespace rex::graphics::condemned2graphics {
     void Condemned2Graphics::InitializeGraphics(){
         _hook->AddInitialHook({"condemned2_fsaa", 0x82925E1C, 0.0f });
         _hook->AddInitialHook({"condemned2_fsaa_override", 0x82925E34, 0.0f });
-        _hook->SendCommandCmd("MaxFPS", 0); //Disable frame limiter
+        _hook->SendCommandCmd("MaxFPS", 0.0); //Disable frame limiter
         _hook->SendCommandCmd("VSyncOnFlip", std::stod( Condemned2::Condemned2Hook::GetSafeString( rex::cvar::GetFlagByName("condemned2_vsync") ) )  ); //Turn off vsync
         //_hook->AddInitialHook({"condemned2_far_z", 0x82925E04, 1000.0f });
         //_hook->AddInitialHook({"condemned2_trilinear", 0x82925DBC, 1.0f });
@@ -131,28 +131,28 @@ namespace rex::graphics::condemned2graphics {
     }
 
     //Vd Functions
-    REX_HOOK_RAW(VdSwap){
-        //REXLOG_INFO("[condemned2_graphics][VdSwap] {:#x} {:#x} {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}", ctx.r3.u64, ctx.r4.u64, ctx.r5.u64, ctx.r6.u64, ctx.r7.u64, ctx.r8.u64, ctx.r9.u64, ctx.r10.u64);
+    /*REX_HOOK_RAW(VdSwap){
+        REXLOG_INFO("[condemned2_graphics][VdSwap] {:#x} {:#x} {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}", ctx.r3.u64, ctx.r4.u64, ctx.r5.u64, ctx.r6.u64, ctx.r7.u64, ctx.r8.u64, ctx.r9.u64, ctx.r10.u64);
         __imp__VdSwap(ctx, base);
     }
     REX_HOOK_RAW(MmFreePhysicalMemory){
-        //REXLOG_INFO("[condemned2_graphics][MmFreePhysicalMemory] {:#x} {:#x}", ctx.r3.u64, ctx.r4.u64);
+        REXLOG_INFO("[condemned2_graphics][MmFreePhysicalMemory] {:#x} {:#x}", ctx.r3.u64, ctx.r4.u64);
         __imp__MmFreePhysicalMemory(ctx, base);
     }
 
     REX_HOOK_RAW(MmAllocatePhysicalMemoryEx){
-        //REXLOG_INFO("[condemned2_graphics][MmAllocatePhysicalMemoryEx] {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}", ctx.r3.u64, ctx.r4.u64, ctx.r5.u64, ctx.r6.u64, ctx.r7.u64, ctx.r8.u64);
+        REXLOG_INFO("[condemned2_graphics][MmAllocatePhysicalMemoryEx] {:#x} {:#x} {:#x} {:#x} {:#x} {:#x}", ctx.r3.u64, ctx.r4.u64, ctx.r5.u64, ctx.r6.u64, ctx.r7.u64, ctx.r8.u64);
         __imp__MmAllocatePhysicalMemoryEx(ctx, base);
     }
     
     REX_HOOK_RAW(VdGetSystemCommandBuffer){
-        //REXLOG_INFO("[condemned2_graphics][VdGetSystemCommandBuffer] {:#x} {:#x}", ctx.r3.u64, ctx.r4.u64);
+        REXLOG_INFO("[condemned2_graphics][VdGetSystemCommandBuffer] {:#x} {:#x}", ctx.r3.u64, ctx.r4.u64);
         __imp__VdGetSystemCommandBuffer(ctx, base);
     }
     REX_HOOK_RAW(VdPersistDisplay){
-        //REXLOG_INFO("[condemned2_graphics][VdPersistDisplay] {:#x} {:#x}", ctx.r3.u64, ctx.r4.u64);
+        REXLOG_INFO("[condemned2_graphics][VdPersistDisplay] {:#x} {:#x}", ctx.r3.u64, ctx.r4.u64);
         __imp__VdPersistDisplay(ctx, base);
-    }
+    }*/
 }  // namespace rex::graphics::condemned2graphics
 
 //Native Resolution

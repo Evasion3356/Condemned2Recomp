@@ -32,13 +32,10 @@ REX_EXTERN(__imp__SetConfigCvar);
 REX_EXTERN(__imp__GetBoolCvar);
 REX_EXTERN(__imp__SetIntCvar);
 REX_EXTERN(__imp__CCommandMgr_Process);
-REX_EXTERN(__imp__Game_LoadExtResource);
-REX_EXTERN(__imp__LoadModelFile);
 REX_IMPORT(SetIntCvar, SendConsoleInt, u32(u32, u32));
 REX_IMPORT(GetFloatCVar, SendConsoleFloat, double(double, u32 ));
 REX_IMPORT(GetBoolCvar, SendConsoleBool, int(u32, int));
 REX_IMPORT(CCommandMgr_Process, ProcessCmd, bool(uint32_t,uint32_t,uint32_t,uint32_t,uint32_t));
-
 
 namespace Condemned2 {
     namespace {constexpr uint32_t guestCapacity = 4096; constexpr uint32_t kCCommandMgr = 0x8294F74C;}
@@ -309,22 +306,6 @@ namespace Condemned2 {
         if ( temp == "true" || temp == "yes" ) temp = "1.0";
         else if (temp == "false" || temp == "no") temp = "0.0";
         return temp;
-    }
-
-    //Resources verified as bundles are parsed and loaded.
-    REX_HOOK_RAW(Game_LoadExtResource){
-        uint32_t self = ctx.r3.u32, name_g = ctx.r4.u32; 
-        const char* p = g_condemned2_hooks->GetMemory()->TranslateVirtual<const char*>(name_g); 
-        REXLOG_INFO("[Game_LoadExtResource] this={} lr={:#x} name_address={} name={}", self, ctx.lr, name_g, p);
-        __imp__Game_LoadExtResource(ctx, base);
-    }
-
-    //Monitor models that objects initialize with!
-    REX_HOOK_RAW(LoadModelFile) {
-        uint32_t name_g = ctx.r4.u32;
-        const char* name_h = g_condemned2_hooks->GetMemory()->TranslateVirtual<const char*>(name_g);
-        REXLOG_INFO("[condemned2_hooks][LoadModelFile] this={:#x} name_address={:#x} name={}", ctx.r3.u32, name_g, name_h);
-        __imp__LoadModelFile(ctx, base);
     }
 
     //Console Vars
