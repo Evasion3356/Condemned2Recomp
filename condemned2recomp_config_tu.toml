@@ -1,39 +1,6 @@
 # Condemned2Recomp Functions (Title Update Version)
 
 [functions]
-0x82201590 = {}
-0x82841168 = {}
-0x8284DEE8 = {}
-0x8221D638 = {}
-0x821B5230 = {}
-0x828465B8 = {}
-0x82850880 = {}
-0x822656E8 = {}
-0x822418E0 = {}
-0x822782A0 = {}
-0x8221A2C0 = {}
-0x821B5FE0 = {}
-0x822418D0 = {}
-0x821B5248 = {}
-0x82265640 = {}
-0x8221A2A0 = {}
-0x821F8068 = {}
-0x82183788 = {}
-0x821F4A78 = {}
-0x821F8090 = {}
-0x821C5FD8 = {}
-0x821B5270 = {}
-0x821A0C20 = {}
-0x82600600 = {}
-0x821C5AF0 = {}
-0x821DA968 = {}
-0x821F4A38 = {}
-0x82694D08 = {}
-0x824DA6B8 = {}
-0x82123768 = {}
-0x8220BAF0 = {}
-0x82694360 = {} # Multiplayer
-
 ########################
 # Condemned2 Functions #
 ########################
@@ -64,11 +31,11 @@
 0x8265E980 = {name="InitializeBatch"}
 
 # Video Display
-0x828C8D54 = {name="VdSwap"}
-0x828C8D64 = {name="VdGetSystemCommandBuffer"}
-0x828C8D44 = {name="VdPersistDisplay"}
-0x828C8B54 = {name="MmAllocatePhysicalMemoryEx"}
-0x828C8B64 = {name="MmFreePhysicalMemory"}
+# 0x828C8D54 = {name="VdSwap"}
+# 0x828C8D64 = {name="VdGetSystemCommandBuffer"}
+# 0x828C8D44 = {name="VdPersistDisplay"}
+# 0x828C8B54 = {name="MmAllocatePhysicalMemoryEx"}
+# 0x828C8B64 = {name="MmFreePhysicalMemory"}
 
 # Input
 0x8234BDC8 = {name="Input_GetAxis"} 
@@ -91,17 +58,21 @@
 0x82302DB0 = {name="IsMeleeWeapon"} # Checks if the player has a melee weapon
 0x824384F0 = {name="BodyCapFunction"} # Body capsule physics
 0x826A5508 = {name="OnAttackEffect"} # Seems to be involved in whether there's gore or just a decal.
-0x82325C08 = {name="Game_BundleLoad"} # Loads a specific bndl!
-0x8217FB08 = {name="ResourceLoader"} # Loads resources, such as mdl!!!
-0x821F7E98 = {name="LoadModelFile"} # Loads resources, such as mdl!!!
+
+# Bundles
+0x821B4648 = {name="Game_ReadAsset"}
+0x82325C08 = {name="Game_LoadStartingBundle"} # Loads a specific bndl!
+0x821B1120 = {name="Game_ProcessBundle"}
+0x821AE858 = {name="Game_LoadExtResource"}
+0x8217FB08 = {name="ResourceLoader"}
+0x821F7D78 = {name="Game_InitWorldModel"} 
+0x821F7E98 = {name="Game_InitWorldObject"} 
 
 # Misc
 0x82561760 = {name="Math_ApplyLinearCurve"} # This has various applications, such as input sensitivity and various sfx settings.
 
 # Cheats
 0x8249ECF8 = {name="CanHolsterWeapon"} # CanHolsterWeapon(player, weapon, input): true if the weapon is stowed in the holster instead of dropped
-0x821B1120 = {name="ParseBundle"} # ParseBundle(resource, stream): reads a .bndl and registers every resource in it
-0x821AE858 = {name="FindResourceHandler"} # FindResourceHandler(manager, resourceName, &handler): false makes ParseBundle skip that resource
 0x823079C8 = {name="GetControlInput"} # GetControlInput(input, "ControlName"): value of a named control, 0 while the player has not unlocked it yet (e.g. "Holster")
 0x823B0BF8 = {name="GetZoomShake"} # GetZoomShake(weapon, mode, float* out): scope sway from the weapon's "ZoomShake" record, false when it has none
 0x82340BF8 = {name="UpdateCameraSway"} # UpdateCameraSway(camera): sine wave camera offset from the CameraSway* config values

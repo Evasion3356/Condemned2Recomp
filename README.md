@@ -16,14 +16,26 @@ This is a static recompilation of **Condemned 2: Bloodshot (Xbox 360)** for Nati
 | --- | --- |
 | Movement | `W` `A` `S` `D` |
 | Sprint | `Shift` |
-| Use | `E` |
+| Walk | `Alt` |
+| Swing Left / Primary Fire | `LMB` |
+| Swing Right / Secondary Fire | `RMB` |
+| Block | `MMB` |
+| Hook Attacks | `Q` |
 | Kick | `Space` |
-| Swing Left / Shoot | `LMB` |
-| Swing Right / Aim | `RMB` |
-| Throw Weapon/Item | `G` |
-| Reload | `R` |
+| Taser | `T` |
+| Throw Item / Weapon | `G` |
+| Drop Item / Weapon or Holster | `B` |
+| Investigate / Forensic Tools | `R` |
+| UV Light | `1` |
+| Camera | `2` |
+| Spectrometer | `3` |
+| GPS | `4` |
+| Take Picture | `LMB` `E` `Enter` |
+| Camera Zoom | `RMB` `V` |
 | Flashlight | `F` |
+| Use | `E` |
 | Check | `H` |
+| Current Objectives | `Tab` |
 | Pause | `Esc` |
 | Settings | `F4` |
 | Console | `` ` `` |

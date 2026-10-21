@@ -66,7 +66,7 @@ namespace Condemned2 {
             static uint32_t CallGuest(PPCContext& ctx, uint8_t* base, uint32_t address, uint32_t r3 = 0, uint32_t r4 = 0, uint32_t r5 = 0, uint32_t r6 = 0, uint32_t r7 = 0, uint32_t r8 = 0);
 
             //Weapon asset loading: while the game parses a bundle we asked for, only the resources of the requested weapons
-            //are registered (ParseBundle / FindResourceHandler hooks), so a spawn doesn't pull in the whole mission.
+            //are registered (Game_ProcessBundle / Game_LoadExtResource hooks), so a spawn doesn't pull in the whole mission.
             bool OnBundleParseBegin(uint32_t resource); //True if this bundle load is filtered, call OnBundleParseEnd afterwards
             void OnBundleParseEnd();
             bool IsFilteringBundle() const;

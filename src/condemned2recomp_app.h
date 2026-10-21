@@ -20,6 +20,7 @@
 #include <condemned2_settings.h>
 #include <condemned2_graphics.h>
 #include <condemned2_input.h>
+#include <condemned2_assets.h>
 #include <condemned2_cheats.h>
 #include <suite/curl_getter.h>
 #include <ui/condemned2_launcher.h>
@@ -36,6 +37,7 @@ namespace Condemned2 {
             void OnPreSetup(rex::RuntimeConfig& config) override {
                 _hooks = new Condemned2::Condemned2Hook();
                 _graphics = new rex::graphics::condemned2graphics::Condemned2Graphics(_hooks);
+                _assets = new Condemned2::Condemned2Assets(_hooks);
                 _cheats = new Condemned2::Condemned2Cheats(_hooks);
 
                 config.gpu_plugin = "xenos";
@@ -180,6 +182,7 @@ namespace Condemned2 {
             rex::graphics::condemned2graphics::Condemned2Graphics *_graphics;
             Condemned2::Condemned2Hook *_hooks;
             Condemned2::Condemned2Cheats *_cheats;
+            Condemned2::Condemned2Assets *_assets;
             std::unordered_map<std::string, ImFont*> loadedFonts;
             std::unique_ptr<GameLauncherDialog> _launcherDialog;
             rex::PathConfig defaultPaths;

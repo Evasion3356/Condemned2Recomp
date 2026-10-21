@@ -70,8 +70,8 @@ REX_EXTERN(__imp__PlayerFireShot);
 REX_EXTERN(__imp__ApplyVectorSpread);
 REX_EXTERN(__imp__ApplyProjectileSpread);
 REX_EXTERN(__imp__GetStanceAccuracy);
-REX_EXTERN(__imp__ParseBundle);
-REX_EXTERN(__imp__FindResourceHandler);
+
+
 REX_EXTERN(__imp__Unlockables_Levels);
 
 //Unlockables
@@ -642,7 +642,7 @@ namespace Condemned2 {
     }
 
     //Bundle filter
-    //The recompiled ParseBundle reads each resource's name, asks FindResourceHandler for a loader and skips the resource's data
+    //The recompiled Game_ProcessBundle reads each resource's name, asks Game_LoadExtResource for a loader and skips the resource's data
     //when there is none. While one of our spawn loads is being parsed, only the weapon's models, textures, animations, effects and
     //sounds get a handler.
     static thread_local std::vector<std::string> t_filterModels;
@@ -784,23 +784,6 @@ namespace Condemned2 {
             return;
         CallGuest(ctx, base, kRefreshWeapon, FindPlayer(), weaponId, 1, 0, 1, 1);
         REXLOG_INFO("[condemned2_cheats] Topped up ammo for {}", weapon);
-    }
-
-    //int ParseBundle(resource, stream)
-    REX_HOOK_RAW(ParseBundle) {
-        bool filtered = g_condemned2_cheats && g_condemned2_cheats->OnBundleParseBegin(ctx.r3.u32);
-        __imp__ParseBundle(ctx, base);
-        if (filtered)
-            g_condemned2_cheats->OnBundleParseEnd();
-    }
-
-    //bool FindResourceHandler(manager, resourceName, &handler)
-    REX_HOOK_RAW(FindResourceHandler) {
-        if (g_condemned2_cheats && g_condemned2_cheats->IsFilteringBundle() && !g_condemned2_cheats->ShouldLoadResource(ctx.r4.u32)) {
-            ctx.r3.u64 = 0;
-            return;
-        }
-        __imp__FindResourceHandler(ctx, base);
     }
 
     REX_HOOK_RAW(ProcessLookInput) {
