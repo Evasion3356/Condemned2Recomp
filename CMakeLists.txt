@@ -44,6 +44,7 @@ set(CONDEMNED2RECOMP_SOURCES
     src/condemned2_input.cpp
     src/condemned2_graphics.cpp
     src/condemned2_hooks.cpp
+    src/condemned2_assets.cpp
     src/condemned2_cheats.cpp
     src/condemned2_debug_server.cpp
     src/condemned2_multiplayer.cpp
