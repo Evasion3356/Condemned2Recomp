@@ -62,7 +62,8 @@ REXCVAR_DEFINE_STRING(condemned2_input_objectives, "Tab", "Condemned 2/Input/Key
 
 // Mouse Settings
 REXCVAR_DEFINE_STRING(condemned2_input_mouse, "Mixed","Condemned 2/Input/Mouse", "Mouse Look Mode").allowed({"Native", "Mixed", "Disable"});
-REXCVAR_DEFINE_DOUBLE(condemned2_input_mouse_sensitivity, 0.075, "Condemned 2/Input/Mouse", "Mouse Sensitivity").range(0.01, 1.0);
+REXCVAR_DEFINE_DOUBLE(condemned2_input_mouse_sensitivity, 0.075, "Condemned 2/Input/Mouse", "Mouse Sensitivity (Mixed mode)").range(0.01, 1.0);
+REXCVAR_DEFINE_DOUBLE(condemned2_input_mouse_native_sensitivity, 0.1, "Condemned 2/Input/Mouse", "Native Mouse Sensitivity (degrees of turn per mouse count)").range(0.005, 2.0);
 
 REXCVAR_DEFINE_BOOL(condemned2_input_debug, false, "Condemned 2/Debug", "Toggle logging for all input.");
 REXCVAR_DEFINE_BOOL(condemned2_input_frame_debug, false, "Condemned 2/Debug", "Toggle logging for input per frame.");
@@ -341,6 +342,12 @@ namespace rex::input::condemned2input {
     float dx = 0.0f, dy = 0.0f;
     SDL_GetRelativeMouseState(&dx, &dy);
     double sensitivity = REXCVAR_GET(condemned2_input_mouse_sensitivity);
+    {
+      // Native mouse look consumes every count once per camera update, however many polls happened in between
+      std::lock_guard<std::mutex> lock(mouseAccumMutex_);
+      accum_dx_ += dx;
+      accum_dy_ += dy;
+    }
     // Mouse look
     last_dx = dx * sensitivity;
     last_dy = dy * sensitivity;
@@ -626,11 +633,18 @@ namespace rex::input::condemned2input {
       if ( btn == 0x17 || btn == 0x16 ){
         return 0;
       }
+      // The native routine applies counts * MouseSensitivity * MouseAimDampen (0.8) straight to the camera, in
+      // radians, with no frame-time scaling. Convert degrees/count to that so the setting is framerate independent.
+      constexpr double kDegToRad = 3.14159265358979323846 / 180.0;
+      constexpr double kMouseAimDampen = 0.8;
+      const double scale = REXCVAR_GET(condemned2_input_mouse_native_sensitivity) * kDegToRad / kMouseAimDampen;
+      // The camera update reads X (0xC) then Y (0xB) once per frame, so X marks the start of a frame.
       if (btn == 0xC ) {
-        return rawMouse.first;
+        g_condemned2_input_driver->BeginMouseLookFrame();
+        return g_condemned2_input_driver->FrameMouse().first * scale;
       }
       if (btn == 0xB ) {
-        return rawMouse.second;
+        return g_condemned2_input_driver->FrameMouse().second * scale;
       }
     }else if (g_condemned2_input_driver->GetMouseLookType() == MouseLookType::MIXED){ // Overrides gamepad input to use raw mouse input, retaining more subtle behaviors from the gamepad input.
       if ( btn == 0xC || btn == 0xB ){
