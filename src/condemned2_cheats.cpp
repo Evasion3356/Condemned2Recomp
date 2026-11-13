@@ -61,6 +61,7 @@ REXCVAR_DEFINE_STRING(condemned2_spawn_weapon_custom, "", "Condemned 2/Cheats", 
 
 //Externs
 REX_EXTERN(__imp__ProcessLookInput);
+REX_EXTERN(__imp__BuildDropMessage);
 REX_EXTERN(__imp__CanHolsterWeapon);
 REX_EXTERN(__imp__GetControlInput);
 REX_EXTERN(__imp__GetZoomShake);
@@ -115,7 +116,6 @@ namespace Condemned2 {
     static constexpr uint32_t kArsenalOffset      = 0xDC4;      //CPlayerObj::m_Arsenal
     static constexpr uint32_t kEnginePtr          = 0x82932814; //Global pointer to the engine interface
     static constexpr uint32_t kDatabasePtr        = 0x82966CA8; //Global pointer to the game database (record/attribute lookups)
-    static constexpr uint32_t kDropMessageReturn  = 0x8230E00C; //Return address of the drop key message builder's GetControlInput call
     static constexpr uint32_t kDatabaseGetBool    = 0xEC;       //Game database vtable: bool GetBool(db, record, "Attribute", 0, default)
     static constexpr uint32_t kWeaponRecord       = 0x826C2EC0; //CWeaponDB::GetRecord(db, weaponId, 0)
     static constexpr uint32_t kAmmoArrayOffset    = 56;         //CArsenal: per-ammo-type reserve counts
@@ -507,13 +507,16 @@ namespace Condemned2 {
         _ammoDue.emplace_back(_frames + kRefreshDelayFrames, weapon);
     }
 
-    //Calls fn(host pointer, size) for every committed chunk of the guest heap (0x40000000 - 0x50000000, where the
-    //game's objects and loaded resources live) until fn returns true.
+    //Calls fn(host pointer, size) for every committed chunk of the guest heaps until fn returns true. The game's
+    //objects and loaded resources live in 0x40000000 - 0x50000000, except that with rexcrt_heap_enable the game's
+    //RtlAllocateHeap allocations (the player object among them) come from a block RexCRT carves top-down out of
+    //the 4 KB virtual heap (0x00000000 - 0x40000000), so that range is scanned first.
     template <typename Fn>
     void Condemned2Cheats::ForEachHeapChunk(Fn&& fn) {
-        constexpr uint32_t kHeapStart = 0x40000000, kHeapEnd = 0x50000000;
-        uint32_t address = kHeapStart;
-        while (address < kHeapEnd) {
+        constexpr std::pair<uint32_t, uint32_t> kRanges[] = {{0x00010000, 0x40000000}, {0x40000000, 0x50000000}};
+        for (auto [rangeStart, rangeEnd] : kRanges) {
+        uint32_t address = rangeStart;
+        while (address < rangeEnd) {
             rex::memory::BaseHeap* heap = _memory->LookupHeap(address);
             rex::memory::HeapAllocationInfo info = {};
             if (!heap || !heap->QueryRegionInfo(address, &info) || !info.region_size) {
@@ -523,11 +526,14 @@ namespace Condemned2 {
             uint32_t next = info.base_address + info.region_size;
             if (next <= address)
                 next = address + 0x1000;
+            if (next > rangeEnd)
+                next = rangeEnd;
             if ((info.state & rex::memory::kMemoryAllocationCommit) && next - address > 0) {
                 if (fn(Translate(address), next - address))
                     return;
             }
             address = next;
+        }
         }
     }
 
@@ -770,7 +776,8 @@ namespace Condemned2 {
         return keep;
     }
 
-    //Finds the player object by looking for its vtable pointer in the guest heap.
+    //Finds the player object by looking for its vtable pointer in the guest heap (the result is cached and
+    //rechecked on every call).
     uint32_t Condemned2Cheats::FindPlayer() {
         auto matches = [&](uint32_t guestAddress) {
             uint8_t* ptr = Translate(guestAddress);
@@ -793,6 +800,7 @@ namespace Condemned2 {
             }
             return false;
         });
+        REXLOG_INFO("[condemned2_cheats] Heap scan found the player at {:#x}", _playerAddress);
         return _playerAddress;
     }
 
@@ -928,17 +936,28 @@ namespace Condemned2 {
         __imp__GetStanceAccuracy(ctx, base);
     }
 
+    //Set while the drop key's message is being built. The generated code doesn't keep ctx.lr up to date for direct
+    //calls, so the caller can't be told apart by return address.
+    static thread_local bool t_buildingDropMessage = false;
+
+    //BuildDropMessage(...): builds the message the drop key (B) sends; reads the "Holster" control via GetControlInput
+    REX_HOOK_RAW(BuildDropMessage) {
+        const bool previous = t_buildingDropMessage;
+        t_buildingDropMessage = true;
+        __imp__BuildDropMessage(ctx, base);
+        t_buildingDropMessage = previous;
+    }
+
     //int GetControlInput(input, const char* controlName)
     REX_HOOK_RAW(GetControlInput) {
         const uint32_t name = ctx.r4.u32;
-        const uint32_t caller = ctx.lr;
         //Unlock All Upgrades: the game's upgrade unlock check goes through this function too (formerly hooked as Unlockables_Upgrades)
         if (g_condemned2_cheats && g_condemned2_cheats->HasAllUpgrades())
             return;
         __imp__GetControlInput(ctx, base);
         //The use/pickup message reads the same control, and a held holster there makes interactions (investigations)
         //fall into the holster path, so only the drop key's message gets it.
-        if ((ctx.r3.u32 & 0xFF) == 0 && caller == kDropMessageReturn && REXCVAR_GET(condemned2_unlock_holster) && name && g_condemned2_cheats
+        if ((ctx.r3.u32 & 0xFF) == 0 && t_buildingDropMessage && REXCVAR_GET(condemned2_unlock_holster) && name && g_condemned2_cheats
             && g_condemned2_cheats->IsHolsterControl(name))
             ctx.r3.u64 = 1;
     }
