@@ -62,6 +62,7 @@ namespace Condemned2 {
             void OnPostSetup() override{
                 _hooks->InitializeHooks(runtime());
                 _graphics->InitializeGraphics();
+                _cheats->Initialize(runtime());
                 _cheats->InitializeCheats();
                 _hooks->InitializeCallbacks();
             }   
@@ -131,7 +132,20 @@ namespace Condemned2 {
             }
 
             void LoadFont(ImFontAtlas* atlas, std::filesystem::path fontPath, float fontSize){
-                loadedFonts[fontPath.stem().string()] = atlas->AddFontFromFileTTF(fontPath.string().c_str(), fontSize); 
+                ImFont* font = nullptr;
+                std::error_code ec;
+                if (std::filesystem::is_regular_file(fontPath, ec)) {
+                    font = atlas->AddFontFromFileTTF(fontPath.string().c_str(), fontSize);
+                }
+                if (!font) {
+                    // The UI widgets dereference these fonts unconditionally, so never store null.
+                    REXLOG_ERROR("Failed to load font '{}', falling back to the ImGui default font",
+                                 std::filesystem::absolute(fontPath, ec).string());
+                    ImFontConfig config;
+                    config.SizePixels = fontSize;
+                    font = atlas->AddFontDefault(&config);
+                }
+                loadedFonts[fontPath.stem().string()] = font;
             }
 
             void OnCreateDialogs(rex::ui::ImGuiDrawer* drawer) override {

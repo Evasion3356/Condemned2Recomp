@@ -25,6 +25,7 @@
 
 #include <condemned2_hooks.h>
 #include <condemned2_assets.h>
+#include <condemned2_cheats.h>
 
 REX_EXTERN(__imp__Game_InitBundles);
 REX_EXTERN(__imp__Game_LoadStartingBundle);
@@ -325,6 +326,11 @@ namespace Condemned2 {
 
     //Resources verified as bundles are parsed and loaded.
     REX_HOOK_RAW(Game_LoadExtResource){
+        //Cheats: while a spawn bundle is filtered, skip resources the weapon doesn't need
+        if (g_condemned2_cheats && g_condemned2_cheats->IsFilteringBundle() && !g_condemned2_cheats->ShouldLoadResource(ctx.r4.u32)) {
+            ctx.r3.u64 = 0;
+            return;
+        }
         uint32_t self = ctx.r3.u32, name_g = ctx.r4.u32; 
         __imp__Game_LoadExtResource(ctx, base);
         const char* p = g_condemned2_assets->GetHook()->GetMemory()->TranslateVirtual<const char*>(name_g); 
@@ -342,7 +348,11 @@ namespace Condemned2 {
         if(g_condemned2_assets->IsDebugging()){
             REXLOG_INFO("[condemned2_assets][Game_ProcessBundle::Begin] this={:#x} lr={:#x} name_address={:#x}", ctx.r3.u64, ctx.lr, ctx.r4.u32);
         }
+        //Cheats: weapon spawns only parse the resources of the requested weapons
+        bool filtered = g_condemned2_cheats && g_condemned2_cheats->OnBundleParseBegin(ctx.r3.u32);
         __imp__Game_ProcessBundle(ctx, base);
+        if (filtered)
+            g_condemned2_cheats->OnBundleParseEnd();
         if(g_condemned2_assets->IsDebugging()){
             REXLOG_INFO("[condemned2_assets][Game_ProcessBundle::End]");
         }
